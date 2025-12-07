@@ -70,6 +70,9 @@ const slice = createSlice({
     pickerCompactViewStateChanged: (state, action: PayloadAction<{ pickerId: string; isCompact: boolean }>) => {
       state.pickerCompactViewStates[action.payload.pickerId] = action.payload.isCompact;
     },
+    setLayoutMode: (state, action: PayloadAction<UIState['layoutMode']>) => {
+      state.layoutMode = action.payload;
+    },
   },
 });
 
@@ -83,6 +86,7 @@ export const {
   textAreaSizesStateChanged,
   dockviewStorageKeyChanged,
   pickerCompactViewStateChanged,
+  setLayoutMode,
 } = slice.actions;
 
 export const selectUiSlice = (state: RootState) => state.ui;
@@ -108,6 +112,10 @@ export const uiSliceConfig: SliceConfig<typeof slice> = {
       if (state._version === 3) {
         state.panels = {};
         state._version = 4;
+      }
+      if (state._version === 4) {
+        state.layoutMode = 'auto';
+        state._version = 5;
       }
       return zUIState.parse(state);
     },

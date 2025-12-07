@@ -4,6 +4,9 @@ import { z } from 'zod';
 const zTabName = z.enum(['generate', 'canvas', 'upscaling', 'workflows', 'models', 'queue']);
 export type TabName = z.infer<typeof zTabName>;
 
+const zLayoutMode = z.enum(['auto', 'horizontal', 'vertical']);
+export type LayoutMode = z.infer<typeof zLayoutMode>;
+
 const zPartialDimensions = z.object({
   width: z.number().optional(),
   height: z.number().optional(),
@@ -13,7 +16,7 @@ const zSerializable = z.any().refine(isPlainObject);
 export type Serializable = z.infer<typeof zSerializable>;
 
 export const zUIState = z.object({
-  _version: z.literal(4),
+  _version: z.literal(5),
   activeTab: zTabName,
   shouldShowItemDetails: z.boolean(),
   shouldShowProgressInViewer: z.boolean(),
@@ -23,10 +26,11 @@ export const zUIState = z.object({
   panels: z.record(z.string(), zSerializable),
   shouldShowNotificationV2: z.boolean(),
   pickerCompactViewStates: z.record(z.string(), z.boolean()),
+  layoutMode: zLayoutMode,
 });
 export type UIState = z.infer<typeof zUIState>;
 export const getInitialUIState = (): UIState => ({
-  _version: 4 as const,
+  _version: 5 as const,
   activeTab: 'generate' as const,
   shouldShowItemDetails: false,
   shouldShowProgressInViewer: true,
@@ -36,4 +40,5 @@ export const getInitialUIState = (): UIState => ({
   panels: {},
   shouldShowNotificationV2: true,
   pickerCompactViewStates: {},
+  layoutMode: 'auto' as const,
 });
