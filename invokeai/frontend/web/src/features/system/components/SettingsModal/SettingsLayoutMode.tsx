@@ -1,8 +1,8 @@
 import type { ComboboxOnChange } from '@invoke-ai/ui-library';
 import { Combobox, FormControl, FormLabel } from '@invoke-ai/ui-library';
 import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
-import { setLayoutMode } from 'features/ui/store/uiSlice';
 import { selectLayoutMode } from 'features/ui/store/uiSelectors';
+import { setLayoutMode } from 'features/ui/store/uiSlice';
 import type { LayoutMode } from 'features/ui/store/uiTypes';
 import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';

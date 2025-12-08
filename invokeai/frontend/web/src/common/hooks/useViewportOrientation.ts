@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-export type ViewportOrientation = {
+type ViewportOrientation = {
   isVertical: boolean;
   aspectRatio: number;
   viewport: {
