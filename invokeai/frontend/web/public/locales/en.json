@@ -1421,6 +1421,12 @@
         "enableNSFWChecker": "Enable NSFW Checker",
         "general": "General",
         "generation": "Generation",
+        "layoutMode": {
+            "label": "Layout Mode",
+            "auto": "Auto (Based on Screen)",
+            "horizontal": "Horizontal",
+            "vertical": "Vertical"
+        },
         "models": "Models",
         "resetComplete": "Web UI has been reset.",
         "resetWebUI": "Reset Web UI",

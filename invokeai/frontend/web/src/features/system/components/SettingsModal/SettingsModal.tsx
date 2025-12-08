@@ -53,6 +53,7 @@ import { cloneElement, memo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { SettingsLanguageSelect } from './SettingsLanguageSelect';
+import { SettingsLayoutMode } from './SettingsLayoutMode';
 
 const [useSettingsModal] = buildUseBoolean(false);
 
@@ -227,6 +228,7 @@ const SettingsModal = (props: { children: ReactElement }) => {
                       <Switch isChecked={shouldUseCpuNoise} onChange={handleChangeShouldUseCpuNoise} />
                     </FormControl>
                     <SettingsLanguageSelect />
+                    <SettingsLayoutMode />
                     <FormControl>
                       <FormLabel>{t('settings.enableInformationalPopovers')}</FormLabel>
                       <Switch

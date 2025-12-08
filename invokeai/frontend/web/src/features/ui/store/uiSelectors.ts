@@ -5,3 +5,4 @@ export const selectActiveTab = createSelector(selectUiSlice, (ui) => ui.activeTa
 export const selectShouldShowItemDetails = createSelector(selectUiSlice, (ui) => ui.shouldShowItemDetails);
 export const selectShouldShowProgressInViewer = createSelector(selectUiSlice, (ui) => ui.shouldShowProgressInViewer);
 export const selectPickerCompactViewStates = createSelector(selectUiSlice, (ui) => ui.pickerCompactViewStates);
+export const selectLayoutMode = createSelector(selectUiSlice, (ui) => ui.layoutMode);
