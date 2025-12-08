@@ -8,6 +8,7 @@ import Loading from 'common/components/Loading/Loading';
 import { useViewportOrientation } from 'common/hooks/useViewportOrientation';
 import { VerticalNavBar } from 'features/ui/components/VerticalNavBar';
 import { CanvasTabAutoLayout } from 'features/ui/layouts/canvas-tab-auto-layout';
+import { CanvasTabVerticalLayout } from 'features/ui/layouts/canvas-tab-vertical-layout';
 import { GenerateTabAutoLayout } from 'features/ui/layouts/generate-tab-auto-layout';
 import { GenerateTabVerticalLayout } from 'features/ui/layouts/generate-tab-vertical-layout';
 import { ModelsTabAutoLayout } from 'features/ui/layouts/models-tab-auto-layout';
@@ -48,7 +49,7 @@ const TabContent = memo(() => {
   return (
     <Flex position="relative" w="full" h="full" overflow="hidden">
       {tab === 'generate' && (isVerticalLayout ? <GenerateTabVerticalLayout /> : <GenerateTabAutoLayout />)}
-      {tab === 'canvas' && <CanvasTabAutoLayout />}
+      {tab === 'canvas' && (isVerticalLayout ? <CanvasTabVerticalLayout /> : <CanvasTabAutoLayout />)}
       {tab === 'upscaling' && <UpscalingTabAutoLayout />}
       {tab === 'workflows' && <WorkflowsTabAutoLayout />}
       {tab === 'models' && <ModelsTabAutoLayout />}
