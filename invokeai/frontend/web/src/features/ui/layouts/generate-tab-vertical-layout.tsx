@@ -3,8 +3,6 @@ import { DockviewReact, GridviewReact, LayoutPriority, Orientation } from 'dockv
 import { BoardsPanel } from 'features/gallery/components/BoardsListPanelContent';
 import { GalleryPanel } from 'features/gallery/components/GalleryPanel';
 import { ImageViewerPanel } from 'features/gallery/components/ImageViewer/ImageViewerPanel';
-import { FloatingLeftPanelButtons } from 'features/ui/components/FloatingLeftPanelButtons';
-import { FloatingRightPanelButtons } from 'features/ui/components/FloatingRightPanelButtons';
 import type {
   AutoLayoutDockviewComponents,
   AutoLayoutGridviewComponents,
@@ -111,8 +109,6 @@ const MainPanel = memo(() => {
         onReady={onReady}
         theme={dockviewTheme}
       />
-      <FloatingLeftPanelButtons />
-      <FloatingRightPanelButtons />
       <PanelHotkeysLogical />
     </>
   );
