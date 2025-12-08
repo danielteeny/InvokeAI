@@ -1,9 +1,10 @@
 import type { DockviewApi, GridviewApi, IDockviewReactProps, IGridviewReactProps } from 'dockview';
 import { DockviewReact, GridviewReact, LayoutPriority, Orientation } from 'dockview';
+import { CanvasLayersPanel } from 'features/controlLayers/components/CanvasLayersPanelContent';
 import { BoardsPanel } from 'features/gallery/components/BoardsListPanelContent';
 import { GalleryPanel } from 'features/gallery/components/GalleryPanel';
 import { ImageViewerPanel } from 'features/gallery/components/ImageViewer/ImageViewerPanel';
-import { FloatingLeftPanelButtons } from 'features/ui/components/FloatingLeftPanelButtons';
+import { FloatingCanvasLeftPanelButtons } from 'features/ui/components/FloatingLeftPanelButtons';
 import { FloatingRightPanelButtons } from 'features/ui/components/FloatingRightPanelButtons';
 import type {
   AutoLayoutDockviewComponents,
@@ -13,46 +14,51 @@ import type {
   RootLayoutGridviewComponents,
 } from 'features/ui/layouts/auto-layout-context';
 import { AutoLayoutProvider, useAutoLayoutContext, withPanelContainer } from 'features/ui/layouts/auto-layout-context';
+import { CanvasLaunchpadPanel } from 'features/ui/layouts/CanvasLaunchpadPanel';
 import type { TabName } from 'features/ui/store/uiTypes';
 import { dockviewTheme } from 'features/ui/styles/theme';
 import { t } from 'i18next';
 import { memo, useCallback, useEffect } from 'react';
 
-import { DockviewTab } from './DockviewTab';
+import { CanvasTabLeftPanel } from './CanvasTabLeftPanel';
+import { CanvasWorkspacePanel } from './CanvasWorkspacePanel';
+import { DockviewTabCanvasViewer } from './DockviewTabCanvasViewer';
+import { DockviewTabCanvasWorkspace } from './DockviewTabCanvasWorkspace';
 import { DockviewTabLaunchpad } from './DockviewTabLaunchpad';
-import { DockviewTabProgress } from './DockviewTabProgress';
-import { GenerateLaunchpadPanel } from './GenerateLaunchpadPanel';
-import { GenerateTabLeftPanel } from './GenerateTabLeftPanel';
 import { navigationApi } from './navigation-api';
 import { PanelHotkeysLogical } from './PanelHotkeysLogical';
 import {
-  BOARD_PANEL_DEFAULT_HEIGHT_PX,
   BOARD_PANEL_MIN_HEIGHT_PX,
   BOARDS_PANEL_ID,
-  DOCKVIEW_TAB_ID,
+  CANVAS_BOARD_PANEL_DEFAULT_HEIGHT_PX,
+  DOCKVIEW_TAB_CANVAS_VIEWER_ID,
+  DOCKVIEW_TAB_CANVAS_WORKSPACE_ID,
   DOCKVIEW_TAB_LAUNCHPAD_ID,
-  DOCKVIEW_TAB_PROGRESS_ID,
   GALLERY_PANEL_DEFAULT_HEIGHT_PX,
   GALLERY_PANEL_ID,
   GALLERY_PANEL_MIN_HEIGHT_PX,
   LAUNCHPAD_PANEL_ID,
+  LAYERS_PANEL_ID,
+  LAYERS_PANEL_MIN_HEIGHT_PX,
   MAIN_PANEL_ID,
   SETTINGS_PANEL_ID,
   VIEWER_PANEL_ID,
+  WORKSPACE_PANEL_ID,
 } from './shared';
 
 // Panel IDs for vertical layout
 const TOP_PANEL_ID = 'top-panel';
-const GALLERY_CONTAINER_PANEL_ID = 'gallery-container-panel';
+const RIGHT_CONTAINER_PANEL_ID = 'right-container-panel';
 
 const tabComponents = {
-  [DOCKVIEW_TAB_ID]: DockviewTab,
-  [DOCKVIEW_TAB_PROGRESS_ID]: DockviewTabProgress,
   [DOCKVIEW_TAB_LAUNCHPAD_ID]: DockviewTabLaunchpad,
+  [DOCKVIEW_TAB_CANVAS_VIEWER_ID]: DockviewTabCanvasViewer,
+  [DOCKVIEW_TAB_CANVAS_WORKSPACE_ID]: DockviewTabCanvasWorkspace,
 };
 
 const mainPanelComponents: AutoLayoutDockviewComponents = {
-  [LAUNCHPAD_PANEL_ID]: withPanelContainer(GenerateLaunchpadPanel),
+  [LAUNCHPAD_PANEL_ID]: withPanelContainer(CanvasLaunchpadPanel),
+  [WORKSPACE_PANEL_ID]: withPanelContainer(CanvasWorkspacePanel),
   [VIEWER_PANEL_ID]: withPanelContainer(ImageViewerPanel),
 };
 
@@ -71,10 +77,26 @@ const initializeMainPanelLayout = (tab: TabName, api: DockviewApi) => {
     });
 
     api.addPanel<DockviewPanelParameters>({
+      id: WORKSPACE_PANEL_ID,
+      component: WORKSPACE_PANEL_ID,
+      title: t('ui.panels.canvas'),
+      tabComponent: DOCKVIEW_TAB_CANVAS_WORKSPACE_ID,
+      params: {
+        tab,
+        focusRegion: 'canvas',
+        i18nKey: 'ui.panels.canvas',
+      },
+      position: {
+        direction: 'within',
+        referencePanel: launchpad.id,
+      },
+    });
+
+    api.addPanel<DockviewPanelParameters>({
       id: VIEWER_PANEL_ID,
       component: VIEWER_PANEL_ID,
       title: t('ui.panels.imageViewer'),
-      tabComponent: DOCKVIEW_TAB_PROGRESS_ID,
+      tabComponent: DOCKVIEW_TAB_CANVAS_VIEWER_ID,
       params: {
         tab,
         focusRegion: 'viewer',
@@ -111,7 +133,7 @@ const MainPanel = memo(() => {
         onReady={onReady}
         theme={dockviewTheme}
       />
-      <FloatingLeftPanelButtons />
+      <FloatingCanvasLeftPanelButtons />
       <FloatingRightPanelButtons />
       <PanelHotkeysLogical />
     </>
@@ -119,14 +141,15 @@ const MainPanel = memo(() => {
 });
 MainPanel.displayName = 'MainPanel';
 
-// Gallery container panel (right side of top panel) - contains boards and gallery stacked vertically
-const galleryContainerPanelComponents: AutoLayoutGridviewComponents = {
+// Right container panel (right side of top panel) - contains boards, gallery, and layers stacked vertically
+const rightContainerPanelComponents: AutoLayoutGridviewComponents = {
   [BOARDS_PANEL_ID]: withPanelContainer(BoardsPanel),
   [GALLERY_PANEL_ID]: withPanelContainer(GalleryPanel),
+  [LAYERS_PANEL_ID]: withPanelContainer(CanvasLayersPanel),
 };
 
-const initializeGalleryContainerPanelLayout = (tab: TabName, api: GridviewApi) => {
-  navigationApi.registerContainer(tab, 'galleryContainer', api, () => {
+const initializeRightContainerPanelLayout = (tab: TabName, api: GridviewApi) => {
+  navigationApi.registerContainer(tab, 'rightContainer', api, () => {
     const gallery = api.addPanel<GridviewPanelParameters>({
       id: GALLERY_PANEL_ID,
       component: GALLERY_PANEL_ID,
@@ -151,17 +174,31 @@ const initializeGalleryContainerPanelLayout = (tab: TabName, api: GridviewApi) =
       },
     });
 
+    api.addPanel<GridviewPanelParameters>({
+      id: LAYERS_PANEL_ID,
+      component: LAYERS_PANEL_ID,
+      minimumHeight: LAYERS_PANEL_MIN_HEIGHT_PX,
+      params: {
+        tab,
+        focusRegion: 'layers',
+      },
+      position: {
+        direction: 'below',
+        referencePanel: gallery.id,
+      },
+    });
+
     gallery.api.setSize({ height: GALLERY_PANEL_DEFAULT_HEIGHT_PX });
-    boards.api.setSize({ height: BOARD_PANEL_DEFAULT_HEIGHT_PX });
+    boards.api.setSize({ height: CANVAS_BOARD_PANEL_DEFAULT_HEIGHT_PX });
   });
 };
 
-const GalleryContainerPanel = memo(() => {
+const RightContainerPanel = memo(() => {
   const { tab } = useAutoLayoutContext();
 
   const onReady = useCallback<IGridviewReactProps['onReady']>(
     ({ api }) => {
-      initializeGalleryContainerPanelLayout(tab, api);
+      initializeRightContainerPanelLayout(tab, api);
     },
     [tab]
   );
@@ -169,17 +206,17 @@ const GalleryContainerPanel = memo(() => {
     <GridviewReact
       className="dockview-theme-invoke"
       orientation={Orientation.VERTICAL}
-      components={galleryContainerPanelComponents}
+      components={rightContainerPanelComponents}
       onReady={onReady}
     />
   );
 });
-GalleryContainerPanel.displayName = 'GalleryContainerPanel';
+RightContainerPanel.displayName = 'RightContainerPanel';
 
-// Top panel - contains settings on left and gallery container on right (horizontal split)
+// Top panel - contains settings on left and right container on right (horizontal split)
 const topPanelComponents: RootLayoutGridviewComponents = {
-  [SETTINGS_PANEL_ID]: withPanelContainer(GenerateTabLeftPanel),
-  [GALLERY_CONTAINER_PANEL_ID]: GalleryContainerPanel,
+  [SETTINGS_PANEL_ID]: withPanelContainer(CanvasTabLeftPanel),
+  [RIGHT_CONTAINER_PANEL_ID]: RightContainerPanel,
 };
 
 const initializeTopPanelLayout = (tab: TabName, api: GridviewApi) => {
@@ -193,9 +230,9 @@ const initializeTopPanelLayout = (tab: TabName, api: GridviewApi) => {
       },
     });
 
-    const galleryContainer = api.addPanel<GridviewPanelParameters>({
-      id: GALLERY_CONTAINER_PANEL_ID,
-      component: GALLERY_CONTAINER_PANEL_ID,
+    const rightContainer = api.addPanel<GridviewPanelParameters>({
+      id: RIGHT_CONTAINER_PANEL_ID,
+      component: RIGHT_CONTAINER_PANEL_ID,
       position: {
         direction: 'right',
         referencePanel: settings.id,
@@ -204,7 +241,7 @@ const initializeTopPanelLayout = (tab: TabName, api: GridviewApi) => {
 
     // Set 50/50 split
     settings.api.setSize({ width: 50 });
-    galleryContainer.api.setSize({ width: 50 });
+    rightContainer.api.setSize({ width: 50 });
   });
 };
 
@@ -255,20 +292,20 @@ const initializeRootPanelLayout = (tab: TabName, api: GridviewApi) => {
   });
 };
 
-export const GenerateTabVerticalLayout = memo(() => {
+export const CanvasTabVerticalLayout = memo(() => {
   const onReady = useCallback<IGridviewReactProps['onReady']>(({ api }) => {
-    initializeRootPanelLayout('generate', api);
+    initializeRootPanelLayout('canvas', api);
   }, []);
 
   useEffect(
     () => () => {
-      navigationApi.unregisterTab('generate');
+      navigationApi.unregisterTab('canvas');
     },
     []
   );
 
   return (
-    <AutoLayoutProvider tab="generate">
+    <AutoLayoutProvider tab="canvas">
       <GridviewReact
         className="dockview-theme-invoke"
         components={rootPanelComponents}
@@ -279,4 +316,4 @@ export const GenerateTabVerticalLayout = memo(() => {
     </AutoLayoutProvider>
   );
 });
-GenerateTabVerticalLayout.displayName = 'GenerateTabVerticalLayout';
+CanvasTabVerticalLayout.displayName = 'CanvasTabVerticalLayout';

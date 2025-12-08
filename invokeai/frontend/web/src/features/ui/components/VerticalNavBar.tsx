@@ -21,7 +21,18 @@ export const VerticalNavBar = memo(() => {
   const { t } = useTranslation();
 
   return (
-    <Flex flexDir="column" alignItems="center" py={6} ps={4} pe={2} gap={4} minW={0} flexShrink={0}>
+    <Flex
+      flexDir="column"
+      alignItems="center"
+      py={6}
+      ps={4}
+      pe={2}
+      gap={4}
+      minW={0}
+      flexShrink={0}
+      borderRight="1px solid"
+      borderColor="base.800"
+    >
       <InvokeAILogoComponent />
 
       <Flex gap={6} pt={6} h="full" flexDir="column">
