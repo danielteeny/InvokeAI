@@ -36,7 +36,7 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
         },
       },
-      host: '0.0.0.0',
+      host: '100.116.27.77', // Listen on Tailscale IP only (excludes 10.* networks)
     },
     test: {
       typecheck: {
