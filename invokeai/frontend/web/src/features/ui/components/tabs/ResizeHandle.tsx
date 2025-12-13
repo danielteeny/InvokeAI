@@ -38,7 +38,7 @@ const commonSx: SystemStyleObject = {
 const horizontalSx: SystemStyleObject = {
   ...commonSx,
   '&[data-panel-group-direction="vertical"]': {
-    h: 4,
+    h: 8, // Doubled from 4 to 8 for easier dragging
     w: 'full',
     position: 'relative',
     _before: {
@@ -71,7 +71,7 @@ HorizontalResizeHandle.displayName = 'HorizontalResizeHandle';
 const verticalSx: SystemStyleObject = {
   ...commonSx,
   '&[data-panel-group-direction="horizontal"]': {
-    w: 4,
+    w: 8, // Doubled from 4 to 8 for easier dragging
     h: 'full',
     position: 'relative',
     _before: {
