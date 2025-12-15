@@ -1051,7 +1051,9 @@
         "noLoRAsInstalled": "No LoRAs installed",
         "noRefinerModelsInstalled": "No SDXL Refiner models installed",
         "defaultVAE": "Default VAE",
-        "noCompatibleLoRAs": "No Compatible LoRAs"
+        "noCompatibleLoRAs": "No Compatible LoRAs",
+        "sortLoRAsAlphabetically": "Sort LoRAs Alphabetically",
+        "sortLoRAsOrderApplied": "Sort LoRAs by Order Applied"
     },
     "nodes": {
         "arithmeticSequence": "Arithmetic Sequence",

@@ -109,6 +109,19 @@ export const singleCanvasEntityDndSource: DndSource<SingleCanvasEntityDndSourceD
   getData: buildGetData(_singleCanvasEntity.key, _singleCanvasEntity.type),
 };
 
+//#region Single LoRA
+const _singleLoRA = buildTypeAndKey('single-lora');
+/**
+ * @knipignore
+ */
+export type SingleLoRADndSourceData = DndData<typeof _singleLoRA.type, typeof _singleLoRA.key, { id: string }>;
+export const singleLoRADndSource: DndSource<SingleLoRADndSourceData> = {
+  ..._singleLoRA,
+  typeGuard: buildTypeGuard(_singleLoRA.key),
+  getData: buildGetData(_singleLoRA.key, _singleLoRA.type),
+};
+//#endregion
+
 type DndTarget<TargetData extends DndData, SourceData extends DndData> = {
   key: symbol;
   type: TargetData['type'];

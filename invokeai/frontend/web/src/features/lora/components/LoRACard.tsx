@@ -5,9 +5,11 @@ import {
   CompositeNumberInput,
   CompositeSlider,
   Flex,
+  Icon,
   IconButton,
   Switch,
   Text,
+  Tooltip,
 } from '@invoke-ai/ui-library';
 import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
 import { InformationalPopover } from 'common/components/InformationalPopover/InformationalPopover';
@@ -19,8 +21,10 @@ import {
   loraWeightChanged,
 } from 'features/controlLayers/store/lorasSlice';
 import type { LoRA } from 'features/controlLayers/store/types';
-import { memo, useCallback, useMemo } from 'react';
-import { PiTrashSimpleBold } from 'react-icons/pi';
+import { DndListDropIndicator } from 'features/dnd/DndListDropIndicator';
+import { useLoRACardDnd } from 'features/lora/components/useLoRACardDnd';
+import { memo, useCallback, useMemo, useRef } from 'react';
+import { PiDotsSixVerticalBold, PiTrashSimpleBold } from 'react-icons/pi';
 import { useGetModelConfigQuery } from 'services/api/endpoints/models';
 
 const MARKS = [-1, 0, 1, 2];
@@ -40,6 +44,9 @@ LoRACard.displayName = 'LoRACard';
 const LoRAContent = memo(({ lora }: { lora: LoRA }) => {
   const dispatch = useAppDispatch();
   const { data: loraConfig } = useGetModelConfigQuery(lora.model.key);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const dragHandleRef = useRef<HTMLDivElement>(null);
+  const [dndState, isDragging] = useLoRACardDnd(cardRef, dragHandleRef, lora.id);
 
   const handleChange = useCallback(
     (v: number) => {
@@ -57,12 +64,31 @@ const LoRAContent = memo(({ lora }: { lora: LoRA }) => {
   }, [dispatch, lora.id]);
 
   return (
-    <Card variant="lora">
+    <Card ref={cardRef} variant="lora" opacity={isDragging ? 0.3 : 1} data-entity-id={lora.id} position="relative">
+      <DndListDropIndicator dndState={dndState} gap="var(--invoke-space-2)" />
       <CardHeader>
         <Flex alignItems="center" justifyContent="space-between" width="100%" gap={2}>
-          <Text noOfLines={1} wordBreak="break-all" color={lora.isEnabled ? 'base.200' : 'base.500'}>
-            {loraConfig?.name ?? lora.model.key.substring(0, 8)}
-          </Text>
+          <Flex alignItems="center" gap={1}>
+            <Flex
+              ref={dragHandleRef}
+              cursor="grab"
+              _active={{ cursor: 'grabbing' }}
+              alignItems="center"
+              justifyContent="center"
+              w={5}
+              h={5}
+              color="base.500"
+              _hover={{ color: 'base.300' }}
+              data-is-dragging={isDragging}
+            >
+              <Icon as={PiDotsSixVerticalBold} boxSize={4} />
+            </Flex>
+            <Tooltip label={loraConfig?.name ?? lora.model.key} placement="top">
+              <Text noOfLines={1} wordBreak="break-all" color={lora.isEnabled ? 'base.200' : 'base.500'}>
+                {loraConfig?.name ?? lora.model.key.substring(0, 8)}
+              </Text>
+            </Tooltip>
+          </Flex>
           <Flex alignItems="center" gap={2}>
             <Switch size="sm" onChange={handleSetLoraToggle} isChecked={lora.isEnabled} />
             <IconButton

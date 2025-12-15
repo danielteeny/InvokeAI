@@ -20,11 +20,15 @@ export const DEFAULT_LORA_WEIGHT_CONFIG = {
 
 const zLoRAsState = z.object({
   loras: z.array(zLoRA),
+  sortMode: z.enum(['order-applied', 'alphabetical']).default('order-applied'),
+  preSortOrder: z.array(z.string()).optional(),
 });
 type LoRAsState = z.infer<typeof zLoRAsState>;
 
 const getInitialState = (): LoRAsState => ({
   loras: [],
+  sortMode: 'order-applied',
+  preSortOrder: undefined,
 });
 
 const selectLoRA = (state: LoRAsState, id: string) => state.loras.find((lora) => lora.id === id);
@@ -70,6 +74,42 @@ const slice = createSlice({
       }
       lora.isEnabled = isEnabled;
     },
+    lorasReordered: (state, action: PayloadAction<{ loraIds: string[] }>) => {
+      const { loraIds } = action.payload;
+      const reordered: LoRA[] = [];
+      for (const id of loraIds.toReversed()) {
+        const lora = state.loras.find((l) => l.id === id);
+        if (lora) {
+          reordered.push(lora);
+        }
+      }
+      state.loras = reordered;
+      // Manual reordering resets to order-applied mode
+      state.sortMode = 'order-applied';
+      state.preSortOrder = undefined;
+    },
+    lorasSortToggled: (state) => {
+      if (state.sortMode === 'order-applied') {
+        // Switching to alphabetical: save current order first
+        state.preSortOrder = state.loras.map((l) => l.id);
+        state.sortMode = 'alphabetical';
+        // Actual sort will be dispatched by component with model configs
+      } else {
+        // Switching back to order-applied: restore previous order
+        if (state.preSortOrder) {
+          const reordered: LoRA[] = [];
+          for (const id of state.preSortOrder.toReversed()) {
+            const lora = state.loras.find((l) => l.id === id);
+            if (lora) {
+              reordered.push(lora);
+            }
+          }
+          state.loras = reordered;
+        }
+        state.sortMode = 'order-applied';
+        state.preSortOrder = undefined;
+      }
+    },
     loraAllDeleted: (state) => {
       state.loras = [];
     },
@@ -82,8 +122,16 @@ const slice = createSlice({
   },
 });
 
-export const { loraAdded, loraRecalled, loraDeleted, loraWeightChanged, loraIsEnabledChanged, loraAllDeleted } =
-  slice.actions;
+export const {
+  loraAdded,
+  loraRecalled,
+  loraDeleted,
+  loraWeightChanged,
+  loraIsEnabledChanged,
+  loraAllDeleted,
+  lorasReordered,
+  lorasSortToggled,
+} = slice.actions;
 
 export const lorasSliceConfig: SliceConfig<typeof slice> = {
   slice,
@@ -96,6 +144,7 @@ export const lorasSliceConfig: SliceConfig<typeof slice> = {
 
 export const selectLoRAsSlice = (state: RootState) => state.loras;
 export const selectAddedLoRAs = createSelector(selectLoRAsSlice, (loras) => loras.loras);
+export const selectLoRASortMode = createSelector(selectLoRAsSlice, (loras) => loras.sortMode);
 export const buildSelectLoRA = (id: string) =>
   createSelector([selectLoRAsSlice], (loras) => {
     return selectLoRA(loras, id);

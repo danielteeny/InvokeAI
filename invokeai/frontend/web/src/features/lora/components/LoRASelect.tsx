@@ -1,4 +1,4 @@
-import { FormControl, FormLabel } from '@invoke-ai/ui-library';
+import { Flex, FormLabel } from '@invoke-ai/ui-library';
 import { EMPTY_ARRAY } from 'app/store/constants';
 import { createMemoizedSelector } from 'app/store/createMemoizedSelector';
 import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
@@ -6,6 +6,7 @@ import { InformationalPopover } from 'common/components/InformationalPopover/Inf
 import type { GroupStatusMap } from 'common/components/Picker/Picker';
 import { loraAdded, selectLoRAsSlice } from 'features/controlLayers/store/lorasSlice';
 import { selectBase } from 'features/controlLayers/store/paramsSlice';
+import { SortLoRAsButton } from 'features/lora/components/SortLoRAsButton';
 import { ModelPicker } from 'features/parameters/components/ModelPicker';
 import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -73,9 +74,9 @@ const LoRASelect = () => {
   }, [currentBaseModel]);
 
   return (
-    <FormControl gap={2}>
+    <Flex alignItems="center" gap={2}>
       <InformationalPopover feature="lora">
-        <FormLabel>{t('models.concepts')} </FormLabel>
+        <FormLabel>{t('models.concepts')}</FormLabel>
       </InformationalPopover>
       <ModelPicker
         pickerId="lora-select"
@@ -89,7 +90,8 @@ const LoRASelect = () => {
         initialGroupStates={initialGroupStates}
         noOptionsText={currentBaseModel ? t('models.noCompatibleLoRAs') : t('models.selectModel')}
       />
-    </FormControl>
+      <SortLoRAsButton loraIds={addedLoRAModelKeys} />
+    </Flex>
   );
 };
 
