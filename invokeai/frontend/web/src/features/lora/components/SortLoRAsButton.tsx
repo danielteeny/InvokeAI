@@ -1,6 +1,11 @@
 import { IconButton } from '@invoke-ai/ui-library';
 import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
-import { lorasReordered, lorasSortToggled, selectLoRASortMode } from 'features/controlLayers/store/lorasSlice';
+import {
+  lorasReordered,
+  lorasSortToggled,
+  selectLoRASortMode,
+  selectLoRAsSlice,
+} from 'features/controlLayers/store/lorasSlice';
 import React, { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PiClockCounterClockwiseBold, PiSortAscendingBold } from 'react-icons/pi';
@@ -10,6 +15,7 @@ export const SortLoRAsButton = memo(({ loraIds }: { loraIds: string[] }) => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const sortMode = useAppSelector(selectLoRASortMode);
+  const loras = useAppSelector(selectLoRAsSlice).loras;
   const [modelConfigs] = useLoRAModels();
 
   // Determine button appearance based on current mode
@@ -34,8 +40,10 @@ export const SortLoRAsButton = memo(({ loraIds }: { loraIds: string[] }) => {
       // Perform the actual alphabetical sort
       const modelNameMap = new Map(modelConfigs.map((config) => [config.key, config.name]));
       const sortedIds = [...loraIds].sort((idA, idB) => {
-        const nameA = (modelNameMap.get(idA) ?? idA).toLowerCase();
-        const nameB = (modelNameMap.get(idB) ?? idB).toLowerCase();
+        const loraA = loras.find((l) => l.id === idA);
+        const loraB = loras.find((l) => l.id === idB);
+        const nameA = (loraA ? (modelNameMap.get(loraA.model.key) ?? loraA.model.key) : idA).toLowerCase();
+        const nameB = (loraB ? (modelNameMap.get(loraB.model.key) ?? loraB.model.key) : idB).toLowerCase();
         return nameA.localeCompare(nameB);
       });
       dispatch(lorasReordered({ loraIds: sortedIds }));
@@ -43,7 +51,7 @@ export const SortLoRAsButton = memo(({ loraIds }: { loraIds: string[] }) => {
       // Switching back to order-applied: toggle handles restoration
       dispatch(lorasSortToggled());
     }
-  }, [dispatch, sortMode, loraIds, modelConfigs]);
+  }, [dispatch, sortMode, loraIds, modelConfigs, loras]);
 
   return (
     <IconButton

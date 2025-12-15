@@ -77,7 +77,7 @@ const slice = createSlice({
     lorasReordered: (state, action: PayloadAction<{ loraIds: string[] }>) => {
       const { loraIds } = action.payload;
       const reordered: LoRA[] = [];
-      for (const id of loraIds.toReversed()) {
+      for (const id of loraIds) {
         const lora = state.loras.find((l) => l.id === id);
         if (lora) {
           reordered.push(lora);
@@ -98,7 +98,7 @@ const slice = createSlice({
         // Switching back to order-applied: restore previous order
         if (state.preSortOrder) {
           const reordered: LoRA[] = [];
-          for (const id of state.preSortOrder.toReversed()) {
+          for (const id of state.preSortOrder) {
             const lora = state.loras.find((l) => l.id === id);
             if (lora) {
               reordered.push(lora);

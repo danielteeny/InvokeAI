@@ -13,15 +13,16 @@ import { useTranslation } from 'react-i18next';
 import { useLoRAModels } from 'services/api/hooks/modelsByType';
 import type { LoRAModelConfig } from 'services/api/types';
 
-const selectLoRAModelKeys = createMemoizedSelector(selectLoRAsSlice, ({ loras }) =>
-  loras.map(({ model }) => model.key)
-);
+const selectLoRAIds = createMemoizedSelector(selectLoRAsSlice, ({ loras }) => loras.map(({ id }) => id));
+
+const selectLoRAs = createMemoizedSelector(selectLoRAsSlice, ({ loras }) => loras);
 
 const LoRASelect = () => {
   const dispatch = useAppDispatch();
   const [modelConfigs, { isLoading }] = useLoRAModels();
   const { t } = useTranslation();
-  const addedLoRAModelKeys = useAppSelector(selectLoRAModelKeys);
+  const addedLoRAIds = useAppSelector(selectLoRAIds);
+  const loras = useAppSelector(selectLoRAs);
 
   const currentBaseModel = useAppSelector(selectBase);
 
@@ -35,10 +36,10 @@ const LoRASelect = () => {
 
   const getIsDisabled = useCallback(
     (model: LoRAModelConfig): boolean => {
-      const isAdded = addedLoRAModelKeys.includes(model.key);
+      const isAdded = loras.some((l) => l.model.key === model.key);
       return isAdded;
     },
-    [addedLoRAModelKeys]
+    [loras]
   );
 
   const onChange = useCallback(
@@ -90,7 +91,7 @@ const LoRASelect = () => {
         initialGroupStates={initialGroupStates}
         noOptionsText={currentBaseModel ? t('models.noCompatibleLoRAs') : t('models.selectModel')}
       />
-      <SortLoRAsButton loraIds={addedLoRAModelKeys} />
+      <SortLoRAsButton loraIds={addedLoRAIds} />
     </Flex>
   );
 };
