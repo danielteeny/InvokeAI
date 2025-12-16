@@ -37,12 +37,14 @@ export const FloatingLeftPanelButtons = memo(() => {
 
   return (
     <Flex pos="absolute" transform="translate(0, -50%)" top="50%" insetInlineStart={2} direction="column" gap={2}>
-      <ButtonGroup orientation="vertical" h={48}>
-        {!isVerticalLayout && <ToggleLeftPanelButton />}
-        <InvokeIconButton />
-        <DeleteCurrentIconButton />
-        <DeleteAllExceptCurrentIconButton />
-      </ButtonGroup>
+      {!isVerticalLayout && (
+        <ButtonGroup orientation="vertical" h={48}>
+          <ToggleLeftPanelButton />
+          <InvokeIconButton />
+          <DeleteCurrentIconButton />
+          <DeleteAllExceptCurrentIconButton />
+        </ButtonGroup>
+      )}
     </Flex>
   );
 });
@@ -69,12 +71,14 @@ export const FloatingCanvasLeftPanelButtons = memo(() => {
       <CanvasManagerProviderGate>
         <ToolChooser />
       </CanvasManagerProviderGate>
-      <ButtonGroup orientation="vertical" h={48}>
-        {!isVerticalLayout && <ToggleLeftPanelButton />}
-        <InvokeIconButton />
-        <DeleteCurrentIconButton />
-        <DeleteAllExceptCurrentIconButton />
-      </ButtonGroup>
+      {!isVerticalLayout && (
+        <ButtonGroup orientation="vertical" h={48}>
+          <ToggleLeftPanelButton />
+          <InvokeIconButton />
+          <DeleteCurrentIconButton />
+          <DeleteAllExceptCurrentIconButton />
+        </ButtonGroup>
+      )}
     </Flex>
   );
 });
