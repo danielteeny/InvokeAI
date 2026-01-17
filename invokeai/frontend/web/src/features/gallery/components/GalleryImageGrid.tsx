@@ -282,6 +282,7 @@ const useStarImageHotkey = () => {
   const lastSelectedItem = useAppSelector(selectLastSelectedItem);
   const selectionCount = useAppSelector(selectSelectionCount);
   const isGalleryFocused = useIsRegionFocused('gallery');
+  const isViewerFocused = useIsRegionFocused('viewer');
   const imageDTO = useImageDTO(lastSelectedItem);
   const [starImages] = useStarImagesMutation();
   const [unstarImages] = useUnstarImagesMutation();
@@ -290,7 +291,7 @@ const useStarImageHotkey = () => {
     if (!imageDTO) {
       return;
     }
-    if (!isGalleryFocused) {
+    if (!isGalleryFocused && !isViewerFocused) {
       return;
     }
     if (imageDTO.starred) {
@@ -298,14 +299,14 @@ const useStarImageHotkey = () => {
     } else {
       starImages({ image_names: [imageDTO.image_name] });
     }
-  }, [imageDTO, isGalleryFocused, starImages, unstarImages]);
+  }, [imageDTO, isGalleryFocused, isViewerFocused, starImages, unstarImages]);
 
   useRegisteredHotkeys({
     id: 'starImage',
     category: 'gallery',
     callback: handleStarHotkey,
-    options: { enabled: !!imageDTO && selectionCount === 1 && isGalleryFocused },
-    dependencies: [imageDTO, selectionCount, isGalleryFocused, handleStarHotkey],
+    options: { enabled: !!imageDTO && selectionCount === 1 && (isGalleryFocused || isViewerFocused) },
+    dependencies: [imageDTO, selectionCount, isGalleryFocused, isViewerFocused, handleStarHotkey],
   });
 };
 
