@@ -92,8 +92,9 @@ const useKeyboardNavigation = (
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      if (getFocusedRegion() !== 'gallery') {
-        // Only handle keyboard navigation when the gallery is focused
+      const focusedRegion = getFocusedRegion();
+      if (focusedRegion !== 'gallery' && focusedRegion !== 'viewer') {
+        // Only handle keyboard navigation when the gallery or viewer is focused
         return;
       }
       // Only handle arrow keys
@@ -116,12 +117,8 @@ const useKeyboardNavigation = (
         return;
       }
 
+      // imagesPerRow is only needed for up/down navigation - it may be 0 if gallery is collapsed
       const imagesPerRow = getItemsPerRow(rootEl);
-
-      if (imagesPerRow === 0) {
-        // This can happen if the grid is not yet rendered or has no items
-        return;
-      }
 
       event.preventDefault();
 
@@ -140,20 +137,18 @@ const useKeyboardNavigation = (
         case 'ArrowLeft':
           if (currentIndex > 0) {
             newIndex = currentIndex - 1;
-            // } else {
-            //   // Wrap to last image
-            //   newIndex = imageNames.length - 1;
           }
           break;
         case 'ArrowRight':
           if (currentIndex < imageNames.length - 1) {
             newIndex = currentIndex + 1;
-            // } else {
-            //   // Wrap to first image
-            //   newIndex = 0;
           }
           break;
         case 'ArrowUp':
+          // Skip if we can't determine grid layout (gallery may be collapsed)
+          if (imagesPerRow === 0) {
+            break;
+          }
           // If on first row, stay on current image
           if (currentIndex < imagesPerRow) {
             newIndex = currentIndex;
@@ -162,6 +157,10 @@ const useKeyboardNavigation = (
           }
           break;
         case 'ArrowDown':
+          // Skip if we can't determine grid layout (gallery may be collapsed)
+          if (imagesPerRow === 0) {
+            break;
+          }
           // If no images below, stay on current image
           if (currentIndex >= imageNames.length - imagesPerRow) {
             newIndex = currentIndex;
