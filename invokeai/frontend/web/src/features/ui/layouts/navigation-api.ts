@@ -12,10 +12,13 @@ import {
   LAUNCHPAD_PANEL_ID,
   LEFT_PANEL_ID,
   LEFT_PANEL_MIN_SIZE_PX,
+  MAIN_PANEL_ID,
+  MAIN_PANEL_MIN_HEIGHT_PX,
   RIGHT_PANEL_ID,
   RIGHT_PANEL_MIN_SIZE_PX,
   SWITCH_TABS_FAKE_DELAY_MS,
   TOP_PANEL_ID,
+  TOP_PANEL_MIN_HEIGHT_PX,
   VIEWER_PANEL_ID,
 } from './shared';
 
@@ -485,6 +488,7 @@ export class NavigationApi {
     }
 
     const topPanel = this.getPanel(activeTab, TOP_PANEL_ID);
+    const mainPanel = this.getPanel(activeTab, MAIN_PANEL_ID);
     if (!topPanel) {
       log.warn(`Top panel not found in active tab "${activeTab}"`);
       return false;
@@ -497,9 +501,15 @@ export class NavigationApi {
 
     const isCollapsed = topPanel.height === 0;
     if (isCollapsed) {
-      // Restore the stored height or use a default
+      // Restore the stored height and proper constraints
       const storedHeight = this._topPanelStoredHeights.get(activeTab) ?? 300;
-      this._expandPanelVertical(topPanel, storedHeight);
+      // First restore proper constraints, then set size
+      topPanel.api.setConstraints({ maximumHeight: Number.MAX_SAFE_INTEGER, minimumHeight: TOP_PANEL_MIN_HEIGHT_PX });
+      topPanel.api.setSize({ height: storedHeight });
+      // Also restore main panel constraints
+      if (mainPanel instanceof GridviewPanel) {
+        mainPanel.api.setConstraints({ minimumHeight: MAIN_PANEL_MIN_HEIGHT_PX });
+      }
       this._$isViewerFullHeight.set(false);
     } else {
       // Store the current height before collapsing
