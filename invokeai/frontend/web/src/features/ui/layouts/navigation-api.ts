@@ -91,10 +91,21 @@ export class NavigationApi {
   private _topPanelStoredHeights: Map<TabName, number> = new Map();
 
   /**
+   * Store the main panel heights before collapsing for each tab.
+   */
+  private _mainPanelStoredHeights: Map<TabName, number> = new Map();
+
+  /**
    * A flag indicating if the viewer is expanded to full height (top panel collapsed).
    */
   private _$isViewerFullHeight = atom(false);
   $isViewerFullHeight: Atom<boolean> = this._$isViewerFullHeight;
+
+  /**
+   * A flag indicating if the settings panel is expanded to full height (main/viewer panel collapsed).
+   */
+  private _$isSettingsFullHeight = atom(false);
+  $isSettingsFullHeight: Atom<boolean> = this._$isSettingsFullHeight;
 
   /**
    * Map of disposables for each tab.
@@ -516,6 +527,53 @@ export class NavigationApi {
       this._topPanelStoredHeights.set(activeTab, topPanel.height);
       this._collapsePanelVertical(topPanel);
       this._$isViewerFullHeight.set(true);
+    }
+    return true;
+  };
+
+  /**
+   * Toggle the main/viewer panel for full-height settings in vertical layout.
+   * When collapsed, stores the current height for later restoration.
+   * When expanded, restores the previously stored height.
+   *
+   * @returns True if the toggle was successful, false otherwise
+   */
+  toggleMainPanelForFullSettings = (): boolean => {
+    const activeTab = this._app?.activeTab.get() ?? null;
+    if (!activeTab) {
+      log.warn('No active tab found to toggle main panel');
+      return false;
+    }
+
+    const topPanel = this.getPanel(activeTab, TOP_PANEL_ID);
+    const mainPanel = this.getPanel(activeTab, MAIN_PANEL_ID);
+    if (!mainPanel) {
+      log.warn(`Main panel not found in active tab "${activeTab}"`);
+      return false;
+    }
+
+    if (!(mainPanel instanceof GridviewPanel)) {
+      log.error('Main panel must be an instance of GridviewPanel');
+      return false;
+    }
+
+    const isCollapsed = mainPanel.height === 0;
+    if (isCollapsed) {
+      // Restore the stored height and proper constraints
+      const storedHeight = this._mainPanelStoredHeights.get(activeTab) ?? 300;
+      // First restore proper constraints, then set size
+      mainPanel.api.setConstraints({ maximumHeight: Number.MAX_SAFE_INTEGER, minimumHeight: MAIN_PANEL_MIN_HEIGHT_PX });
+      mainPanel.api.setSize({ height: storedHeight });
+      // Also restore top panel constraints
+      if (topPanel instanceof GridviewPanel) {
+        topPanel.api.setConstraints({ minimumHeight: TOP_PANEL_MIN_HEIGHT_PX });
+      }
+      this._$isSettingsFullHeight.set(false);
+    } else {
+      // Store the current height before collapsing
+      this._mainPanelStoredHeights.set(activeTab, mainPanel.height);
+      this._collapsePanelVertical(mainPanel);
+      this._$isSettingsFullHeight.set(true);
     }
     return true;
   };
