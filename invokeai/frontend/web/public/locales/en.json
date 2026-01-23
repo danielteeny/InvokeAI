@@ -527,7 +527,11 @@
             },
             "togglePanels": {
                 "title": "Toggle Panels",
-                "desc": "Show or hide both left and right panels at once."
+                "desc": "Toggle left/right panels in horizontal layout, or viewer full height in vertical layout."
+            },
+            "toggleSettingsFullHeight": {
+                "title": "Toggle Settings Full Height",
+                "desc": "Expand settings panel to full height (vertical layout only)."
             },
             "selectGenerateTab": {
                 "title": "Select the Generate Tab",
