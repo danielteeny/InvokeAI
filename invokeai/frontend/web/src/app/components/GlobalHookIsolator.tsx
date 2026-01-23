@@ -7,6 +7,7 @@ import { appStarted } from 'app/store/middleware/listenerMiddleware/listeners/ap
 import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
 import { useFocusRegionWatcher } from 'common/hooks/focus';
 import { useCloseChakraTooltipsOnDragFix } from 'common/hooks/useCloseChakraTooltipsOnDragFix';
+import { useCloseChakraTooltipsOnTouch } from 'common/hooks/useCloseChakraTooltipsOnTouch';
 import { useGlobalHotkeys } from 'common/hooks/useGlobalHotkeys';
 import { useDndMonitor } from 'features/dnd/useDndMonitor';
 import { useDynamicPromptsWatcher } from 'features/dynamicPrompts/hooks/useDynamicPromptsWatcher';
@@ -42,6 +43,7 @@ export const GlobalHookIsolator = memo(() => {
   useGetOpenAPISchemaQuery();
   useSyncLoggingConfig();
   useCloseChakraTooltipsOnDragFix();
+  useCloseChakraTooltipsOnTouch();
   useDndMonitor();
   useSyncNodeErrors();
   useSyncLangDirection();
