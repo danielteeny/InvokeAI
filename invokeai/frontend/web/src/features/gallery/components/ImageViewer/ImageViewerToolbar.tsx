@@ -7,6 +7,7 @@ import { useImageDTO } from 'services/api/endpoints/images';
 
 import { CurrentImageButtons } from './CurrentImageButtons';
 import { ToggleProgressButton } from './ToggleProgressButton';
+import { ToggleViewerFullHeightButton } from './ToggleViewerFullHeightButton';
 
 export const ImageViewerToolbar = memo(() => {
   const lastSelectedItem = useAppSelector(selectLastSelectedItem);
@@ -15,6 +16,7 @@ export const ImageViewerToolbar = memo(() => {
   return (
     <Flex w="full" justifyContent="center" h={8}>
       <ToggleProgressButton />
+      <ToggleViewerFullHeightButton />
       <Spacer />
       {imageDTO && <CurrentImageButtons imageDTO={imageDTO} />}
       <Spacer />

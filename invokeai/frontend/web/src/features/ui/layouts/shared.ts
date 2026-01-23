@@ -36,4 +36,8 @@ export const LAYERS_PANEL_MIN_HEIGHT_PX = 36;
 
 export const CANVAS_BOARD_PANEL_DEFAULT_HEIGHT_PX = 36; // Collapsed by default on Canvas
 
+export const TOP_PANEL_ID = 'top-panel';
+export const TOP_PANEL_MIN_HEIGHT_PX = 100; // Minimum height for top panel in vertical layout
+export const MAIN_PANEL_MIN_HEIGHT_PX = 200; // Minimum height for main/viewer panel in vertical layout
+
 export const SWITCH_TABS_FAKE_DELAY_MS = 300;
