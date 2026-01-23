@@ -108,6 +108,7 @@ export const useHotkeyData = (): HotkeysData => {
     addHotkey('app', 'toggleRightPanel', ['g']);
     addHotkey('app', 'resetPanelLayout', ['shift+r']);
     addHotkey('app', 'togglePanels', ['f']);
+    addHotkey('app', 'toggleSettingsFullHeight', ['shift+f']);
 
     // Canvas
     addHotkey('canvas', 'selectBrushTool', ['b']);
