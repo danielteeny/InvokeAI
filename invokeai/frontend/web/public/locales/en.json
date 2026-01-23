@@ -13,6 +13,7 @@
         "toggleRightPanel": "Toggle Right Panel (G)",
         "toggleLeftPanel": "Toggle Left Panel (T)",
         "toggleViewerFullHeight": "Toggle Viewer Full Height",
+        "toggleSettingsFullHeight": "Toggle Settings Full Height",
         "uploadImage": "Upload Image",
         "uploadImages": "Upload Image(s)"
     },
