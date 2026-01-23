@@ -255,6 +255,12 @@ const initializeRootPanelLayout = (tab: TabName, api: GridviewApi) => {
       },
     });
   });
+
+  // Apply constraints after registration (handles restored layouts too)
+  const topPanel = api.getPanel(TOP_PANEL_ID);
+  const mainPanel = api.getPanel(MAIN_PANEL_ID);
+  topPanel?.api.setConstraints({ minimumHeight: TOP_PANEL_MIN_HEIGHT_PX });
+  mainPanel?.api.setConstraints({ minimumHeight: MAIN_PANEL_MIN_HEIGHT_PX });
 };
 
 export const GenerateTabVerticalLayout = memo(() => {
