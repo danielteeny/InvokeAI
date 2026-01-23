@@ -36,12 +36,14 @@ import {
   GALLERY_PANEL_MIN_HEIGHT_PX,
   LAUNCHPAD_PANEL_ID,
   MAIN_PANEL_ID,
+  MAIN_PANEL_MIN_HEIGHT_PX,
   SETTINGS_PANEL_ID,
+  TOP_PANEL_ID,
+  TOP_PANEL_MIN_HEIGHT_PX,
   VIEWER_PANEL_ID,
 } from './shared';
 
 // Panel IDs for vertical layout
-const TOP_PANEL_ID = 'top-panel';
 const GALLERY_CONTAINER_PANEL_ID = 'gallery-container-panel';
 
 const tabComponents = {
@@ -239,12 +241,14 @@ const initializeRootPanelLayout = (tab: TabName, api: GridviewApi) => {
       id: MAIN_PANEL_ID,
       component: MAIN_PANEL_ID,
       priority: LayoutPriority.High,
+      minimumHeight: MAIN_PANEL_MIN_HEIGHT_PX,
     });
 
     api.addPanel<GridviewPanelParameters>({
       id: TOP_PANEL_ID,
       component: TOP_PANEL_ID,
       priority: LayoutPriority.Low,
+      minimumHeight: TOP_PANEL_MIN_HEIGHT_PX,
       position: {
         direction: 'above',
         referencePanel: main.id,

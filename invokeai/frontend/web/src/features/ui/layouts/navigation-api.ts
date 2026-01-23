@@ -15,6 +15,7 @@ import {
   RIGHT_PANEL_ID,
   RIGHT_PANEL_MIN_SIZE_PX,
   SWITCH_TABS_FAKE_DELAY_MS,
+  TOP_PANEL_ID,
   VIEWER_PANEL_ID,
 } from './shared';
 
@@ -80,6 +81,17 @@ export class NavigationApi {
    * Track the _current_ active dockview panel for each tab.
    */
   _currentActiveDockviewPanel: Map<TabName, string | null> = new Map();
+
+  /**
+   * Store the top panel heights before collapsing for each tab.
+   */
+  private _topPanelStoredHeights: Map<TabName, number> = new Map();
+
+  /**
+   * A flag indicating if the viewer is expanded to full height (top panel collapsed).
+   */
+  private _$isViewerFullHeight = atom(false);
+  $isViewerFullHeight: Atom<boolean> = this._$isViewerFullHeight;
 
   /**
    * Map of disposables for each tab.
@@ -440,6 +452,62 @@ export class NavigationApi {
   _collapsePanel = (panel: IGridviewPanel) => {
     panel.api.setConstraints({ maximumWidth: 0, minimumWidth: 0 });
     panel.api.setSize({ width: 0 });
+  };
+
+  /**
+   * Expand a panel vertically to a specified height.
+   */
+  _expandPanelVertical = (panel: IGridviewPanel, height: number) => {
+    panel.api.setConstraints({ maximumHeight: Number.MAX_SAFE_INTEGER, minimumHeight: height });
+    panel.api.setSize({ height });
+  };
+
+  /**
+   * Collapse a panel vertically by setting its height to 0.
+   */
+  _collapsePanelVertical = (panel: IGridviewPanel) => {
+    panel.api.setConstraints({ maximumHeight: 0, minimumHeight: 0 });
+    panel.api.setSize({ height: 0 });
+  };
+
+  /**
+   * Toggle the top panel for full-height viewer in vertical layout.
+   * When collapsed, stores the current height for later restoration.
+   * When expanded, restores the previously stored height.
+   *
+   * @returns True if the toggle was successful, false otherwise
+   */
+  toggleTopPanelForFullViewer = (): boolean => {
+    const activeTab = this._app?.activeTab.get() ?? null;
+    if (!activeTab) {
+      log.warn('No active tab found to toggle top panel');
+      return false;
+    }
+
+    const topPanel = this.getPanel(activeTab, TOP_PANEL_ID);
+    if (!topPanel) {
+      log.warn(`Top panel not found in active tab "${activeTab}"`);
+      return false;
+    }
+
+    if (!(topPanel instanceof GridviewPanel)) {
+      log.error('Top panel must be an instance of GridviewPanel');
+      return false;
+    }
+
+    const isCollapsed = topPanel.height === 0;
+    if (isCollapsed) {
+      // Restore the stored height or use a default
+      const storedHeight = this._topPanelStoredHeights.get(activeTab) ?? 300;
+      this._expandPanelVertical(topPanel, storedHeight);
+      this._$isViewerFullHeight.set(false);
+    } else {
+      // Store the current height before collapsing
+      this._topPanelStoredHeights.set(activeTab, topPanel.height);
+      this._collapsePanelVertical(topPanel);
+      this._$isViewerFullHeight.set(true);
+    }
+    return true;
   };
 
   /**
