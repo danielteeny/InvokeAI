@@ -15,7 +15,9 @@ import { ModelsTabAutoLayout } from 'features/ui/layouts/models-tab-auto-layout'
 import { navigationApi } from 'features/ui/layouts/navigation-api';
 import { QueueTabAutoLayout } from 'features/ui/layouts/queue-tab-auto-layout';
 import { UpscalingTabAutoLayout } from 'features/ui/layouts/upscaling-tab-auto-layout';
+import { UpscalingTabVerticalLayout } from 'features/ui/layouts/upscaling-tab-vertical-layout';
 import { WorkflowsTabAutoLayout } from 'features/ui/layouts/workflows-tab-auto-layout';
+import { WorkflowsTabVerticalLayout } from 'features/ui/layouts/workflows-tab-vertical-layout';
 import { selectActiveTab } from 'features/ui/store/uiSelectors';
 import { memo, useMemo } from 'react';
 
@@ -50,8 +52,8 @@ const TabContent = memo(() => {
     <Flex position="relative" w="full" h="full" overflow="hidden">
       {tab === 'generate' && (isVerticalLayout ? <GenerateTabVerticalLayout /> : <GenerateTabAutoLayout />)}
       {tab === 'canvas' && (isVerticalLayout ? <CanvasTabVerticalLayout /> : <CanvasTabAutoLayout />)}
-      {tab === 'upscaling' && <UpscalingTabAutoLayout />}
-      {tab === 'workflows' && <WorkflowsTabAutoLayout />}
+      {tab === 'upscaling' && (isVerticalLayout ? <UpscalingTabVerticalLayout /> : <UpscalingTabAutoLayout />)}
+      {tab === 'workflows' && (isVerticalLayout ? <WorkflowsTabVerticalLayout /> : <WorkflowsTabAutoLayout />)}
       {tab === 'models' && <ModelsTabAutoLayout />}
       {tab === 'queue' && <QueueTabAutoLayout />}
       <SwitchingTabsLoader />
