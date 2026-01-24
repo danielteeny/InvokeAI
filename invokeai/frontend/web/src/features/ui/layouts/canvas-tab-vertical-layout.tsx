@@ -224,24 +224,22 @@ const initializeTopPanelLayout = (tab: TabName, api: GridviewApi) => {
     const settings = api.addPanel<GridviewPanelParameters>({
       id: SETTINGS_PANEL_ID,
       component: SETTINGS_PANEL_ID,
+      size: 1,
       params: {
         tab,
         focusRegion: 'settings',
       },
     });
 
-    const rightContainer = api.addPanel<GridviewPanelParameters>({
+    api.addPanel<GridviewPanelParameters>({
       id: RIGHT_CONTAINER_PANEL_ID,
       component: RIGHT_CONTAINER_PANEL_ID,
+      size: 1,
       position: {
         direction: 'right',
         referencePanel: settings.id,
       },
     });
-
-    // Set 50/50 split
-    settings.api.setSize({ width: 50 });
-    rightContainer.api.setSize({ width: 50 });
   });
 };
 
