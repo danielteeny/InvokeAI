@@ -7,6 +7,7 @@ import { useImageDTO } from 'services/api/endpoints/images';
 
 import { CurrentImageButtons } from './CurrentImageButtons';
 import { ToggleProgressButton } from './ToggleProgressButton';
+import { ToggleStarredButton } from './ToggleStarredButton';
 import { ToggleViewerFullHeightButton } from './ToggleViewerFullHeightButton';
 
 export const ImageViewerToolbar = memo(() => {
@@ -20,6 +21,7 @@ export const ImageViewerToolbar = memo(() => {
       <Spacer />
       {imageDTO && <CurrentImageButtons imageDTO={imageDTO} />}
       <Spacer />
+      <ToggleStarredButton />
       {imageDTO && <ToggleMetadataViewerButton />}
     </Flex>
   );
