@@ -3,6 +3,8 @@ import {
   Button,
   Flex,
   Icon,
+  IconButton,
+  Input,
   Popover,
   PopoverArrow,
   PopoverBody,
@@ -26,9 +28,11 @@ import ModelImage from 'features/modelManagerV2/subpanels/ModelManagerPanel/Mode
 import { NavigateToModelManagerButton } from 'features/parameters/components/MainModel/NavigateToModelManagerButton';
 import { navigationApi } from 'features/ui/layouts/navigation-api';
 import { filesize } from 'filesize';
-import { memo, useCallback, useMemo, useRef } from 'react';
+import type { ChangeEvent, KeyboardEvent, MouseEvent } from 'react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
-import { PiCaretDownBold, PiLinkSimple } from 'react-icons/pi';
+import { PiCaretDownBold, PiFloppyDiskBold, PiLinkSimple, PiTrashSimpleBold } from 'react-icons/pi';
+import type { LoRAPresetRecordDTO } from 'services/api/endpoints/loraPresets';
 import { useGetRelatedModelIdsBatchQuery } from 'services/api/endpoints/modelRelationships';
 import type { LoRAModelConfig } from 'services/api/types';
 
@@ -87,6 +91,8 @@ const removeStarred = <T,>(obj: WithStarred<T>): T => {
 
 type LoRAPickerProps = {
   pickerId: string;
+  mode: 'lora' | 'preset';
+  // LoRA mode props
   modelConfigs: LoRAModelConfig[];
   selectedModelKeys: string[];
   onChange: (modelConfig: LoRAModelConfig) => void;
@@ -94,11 +100,19 @@ type LoRAPickerProps = {
   placeholder?: string;
   isDisabled?: boolean;
   noOptionsText?: string;
+  // Preset mode props
+  presets?: LoRAPresetRecordDTO[];
+  onSelectPreset?: (preset: LoRAPresetRecordDTO) => void;
+  onDeletePreset?: (presetId: string) => void;
+  onSavePreset?: (name: string) => void;
+  canSavePreset?: boolean;
+  isSavingPreset?: boolean;
 };
 
 export const LoRAPicker = typedMemo(
   ({
     pickerId,
+    mode,
     modelConfigs,
     selectedModelKeys,
     onChange,
@@ -106,17 +120,22 @@ export const LoRAPicker = typedMemo(
     placeholder,
     isDisabled,
     noOptionsText,
+    presets,
+    onSelectPreset,
+    onDeletePreset,
+    onSavePreset,
+    canSavePreset,
+    isSavingPreset,
   }: LoRAPickerProps) => {
     const { t } = useTranslation();
     const categoryViewEnabled = useAppSelector(selectLoraCategoryViewEnabled);
+    const [presetName, setPresetName] = useState('');
 
     const { relatedModelKeys } = useGetRelatedModelIdsBatchQuery(selectedModelKeys, {
       ...relatedModelKeysQueryOptions,
     });
 
-    const options = useMemo<
-      WithStarred<LoRAModelConfig>[] | Group<WithStarred<LoRAModelConfig>>[]
-    >(() => {
+    const options = useMemo<WithStarred<LoRAModelConfig>[] | Group<WithStarred<LoRAModelConfig>>[]>(() => {
       // Add starred field to all models
       const modelsWithStarred = modelConfigs.map((model) => ({
         ...model,
@@ -190,10 +209,12 @@ export const LoRAPicker = typedMemo(
 
     const popover = useDisclosure(false);
     const pickerRef = useRef<PickerContextState<WithStarred<LoRAModelConfig>>>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     const onClose = useCallback(() => {
       popover.close();
       pickerRef.current?.$searchTerm.set('');
+      setPresetName('');
     }, [popover]);
 
     const onSelect = useCallback(
@@ -221,17 +242,56 @@ export const LoRAPicker = typedMemo(
       []
     );
 
+    // Preset mode handlers
+    const handlePresetNameChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+      setPresetName(e.target.value);
+    }, []);
+
+    const handleSavePreset = useCallback(() => {
+      if (!presetName.trim() || !onSavePreset) {
+        return;
+      }
+      onSavePreset(presetName.trim());
+      setPresetName('');
+    }, [onSavePreset, presetName]);
+
+    const handleKeyDown = useCallback(
+      (e: KeyboardEvent) => {
+        if (e.key === 'Enter') {
+          handleSavePreset();
+        }
+      },
+      [handleSavePreset]
+    );
+
+    const handleSelectPreset = useCallback(
+      (preset: LoRAPresetRecordDTO) => {
+        onSelectPreset?.(preset);
+        onClose();
+      },
+      [onSelectPreset, onClose]
+    );
+
+    const handleDeletePreset = useCallback(
+      (presetId: string) => {
+        onDeletePreset?.(presetId);
+      },
+      [onDeletePreset]
+    );
+
+    const buttonPlaceholder = mode === 'lora' ? (placeholder ?? t('models.addLora')) : t('lora.presets');
+
     return (
       <Popover
         isOpen={popover.isOpen}
         onOpen={popover.open}
         onClose={onClose}
-        initialFocusRef={pickerRef.current?.inputRef}
+        initialFocusRef={mode === 'lora' ? pickerRef.current?.inputRef : inputRef}
         modifiers={popperModifiers}
       >
         <PopoverTrigger>
           <Button size="sm" flexGrow={1} variant="outline" isDisabled={isDisabled}>
-            {placeholder ?? 'Select LoRA'}
+            {buttonPlaceholder}
             <Spacer />
             <PiCaretDownBold />
           </Button>
@@ -240,21 +300,64 @@ export const LoRAPicker = typedMemo(
           <PopoverContent p={0} w={400} h={400}>
             <PopoverArrow />
             <PopoverBody p={0} w="full" h="full" borderWidth={1} borderColor="base.700" borderRadius="base">
-              <Picker<WithStarred<LoRAModelConfig>>
-                pickerId={pickerId}
-                handleRef={pickerRef}
-                optionsOrGroups={options}
-                getOptionId={getOptionId}
-                onSelect={onSelect}
-                selectedOption={undefined}
-                isMatch={isMatch}
-                OptionComponent={PickerOptionComponent}
-                noOptionsFallback={<NoOptionsFallback noOptionsText={noOptionsText} />}
-                noMatchesFallback={t('modelManager.noMatchingModels')}
-                NextToSearchBar={NextToSearchBarContent}
-                getIsOptionDisabled={getIsDisabled}
-                searchable
-              />
+              {mode === 'lora' ? (
+                <Picker<WithStarred<LoRAModelConfig>>
+                  pickerId={pickerId}
+                  handleRef={pickerRef}
+                  optionsOrGroups={options}
+                  getOptionId={getOptionId}
+                  onSelect={onSelect}
+                  selectedOption={undefined}
+                  isMatch={isMatch}
+                  OptionComponent={PickerOptionComponent}
+                  noOptionsFallback={<NoOptionsFallback noOptionsText={noOptionsText} />}
+                  noMatchesFallback={t('modelManager.noMatchingModels')}
+                  NextToSearchBar={NextToSearchBarContent}
+                  getIsOptionDisabled={getIsDisabled}
+                  searchable
+                />
+              ) : (
+                <Flex flexDir="column" h="full">
+                  {/* Save preset input */}
+                  <Flex p={2} gap={2} borderBottomWidth={1} borderColor="base.700">
+                    <Input
+                      ref={inputRef}
+                      value={presetName}
+                      onChange={handlePresetNameChange}
+                      onKeyDown={handleKeyDown}
+                      placeholder={t('lora.presetNamePlaceholder')}
+                      size="sm"
+                    />
+                    <IconButton
+                      size="sm"
+                      onClick={handleSavePreset}
+                      isLoading={isSavingPreset}
+                      isDisabled={!presetName.trim() || !canSavePreset}
+                      tooltip={canSavePreset ? t('lora.savePreset') : t('lora.noLoRAsToSave')}
+                      aria-label={t('lora.savePreset')}
+                      icon={<PiFloppyDiskBold />}
+                      colorScheme="invokeGreen"
+                    />
+                  </Flex>
+                  {/* Presets list */}
+                  <Flex flexDir="column" flex={1} overflowY="auto" p={2} gap={1}>
+                    {presets && presets.length > 0 ? (
+                      presets.map((preset) => (
+                        <PresetItem
+                          key={preset.id}
+                          preset={preset}
+                          onSelect={handleSelectPreset}
+                          onDelete={handleDeletePreset}
+                        />
+                      ))
+                    ) : (
+                      <Flex flex={1} alignItems="center" justifyContent="center">
+                        <Text color="base.400">{t('lora.noPresets')}</Text>
+                      </Flex>
+                    )}
+                  </Flex>
+                </Flex>
+              )}
             </PopoverBody>
           </PopoverContent>
         </Portal>
@@ -263,6 +366,54 @@ export const LoRAPicker = typedMemo(
   }
 );
 LoRAPicker.displayName = 'LoRAPicker';
+
+// Preset item component
+type PresetItemProps = {
+  preset: LoRAPresetRecordDTO;
+  onSelect: (preset: LoRAPresetRecordDTO) => void;
+  onDelete: (presetId: string) => void;
+};
+
+const presetItemSx: SystemStyleObject = {
+  p: 2,
+  cursor: 'pointer',
+  borderRadius: 'base',
+  '&:hover': {
+    bg: 'base.750',
+  },
+};
+
+const PresetItem = memo(({ preset, onSelect, onDelete }: PresetItemProps) => {
+  const { t } = useTranslation();
+
+  const handleClick = useCallback(() => {
+    onSelect(preset);
+  }, [onSelect, preset]);
+
+  const handleDelete = useCallback(
+    (e: MouseEvent) => {
+      e.stopPropagation();
+      onDelete(preset.id);
+    },
+    [onDelete, preset.id]
+  );
+
+  return (
+    <Flex sx={presetItemSx} onClick={handleClick} justifyContent="space-between" alignItems="center">
+      <Text fontSize="sm">{preset.name}</Text>
+      <IconButton
+        size="xs"
+        variant="ghost"
+        colorScheme="error"
+        onClick={handleDelete}
+        tooltip={t('lora.deletePreset')}
+        aria-label={t('lora.deletePreset')}
+        icon={<PiTrashSimpleBold />}
+      />
+    </Flex>
+  );
+});
+PresetItem.displayName = 'PresetItem';
 
 const optionSx: SystemStyleObject = {
   p: 2,
@@ -308,43 +459,41 @@ const optionNameSx: SystemStyleObject = {
   },
 };
 
-const PickerOptionComponent = typedMemo(
-  ({ option, ...rest }: { option: WithStarred<LoRAModelConfig> } & BoxProps) => {
-    const { isCompactView } = usePickerContext<WithStarred<LoRAModelConfig>>();
+const PickerOptionComponent = typedMemo(({ option, ...rest }: { option: WithStarred<LoRAModelConfig> } & BoxProps) => {
+  const { isCompactView } = usePickerContext<WithStarred<LoRAModelConfig>>();
 
-    return (
-      <Flex {...rest} sx={optionSx} data-is-compact={isCompactView}>
-        {!isCompactView && option.cover_image && <ModelImage image_url={option.cover_image} />}
-        <Flex flexDir="column" gap={1} flex={1}>
-          <Flex gap={2} alignItems="center">
-            {option.starred && <Icon as={PiLinkSimple} color="invokeYellow.500" boxSize={4} />}
-            <Text className="picker-option" sx={optionNameSx} data-is-compact={isCompactView}>
-              {option.name}
-            </Text>
-            <Spacer />
-            {option.file_size > 0 && (
-              <Text
-                className="extra-info"
-                variant="subtext"
-                fontStyle="italic"
-                noOfLines={1}
-                flexShrink={0}
-                overflow="visible"
-              >
-                {filesize(option.file_size)}
-              </Text>
-            )}
-          </Flex>
-          {option.description && !isCompactView && (
-            <Text className="extra-info" color="base.200">
-              {option.description}
+  return (
+    <Flex {...rest} sx={optionSx} data-is-compact={isCompactView}>
+      {!isCompactView && option.cover_image && <ModelImage image_url={option.cover_image} />}
+      <Flex flexDir="column" gap={1} flex={1}>
+        <Flex gap={2} alignItems="center">
+          {option.starred && <Icon as={PiLinkSimple} color="invokeYellow.500" boxSize={4} />}
+          <Text className="picker-option" sx={optionNameSx} data-is-compact={isCompactView}>
+            {option.name}
+          </Text>
+          <Spacer />
+          {option.file_size > 0 && (
+            <Text
+              className="extra-info"
+              variant="subtext"
+              fontStyle="italic"
+              noOfLines={1}
+              flexShrink={0}
+              overflow="visible"
+            >
+              {filesize(option.file_size)}
             </Text>
           )}
         </Flex>
+        {option.description && !isCompactView && (
+          <Text className="extra-info" color="base.200">
+            {option.description}
+          </Text>
+        )}
       </Flex>
-    );
-  }
-);
+    </Flex>
+  );
+});
 PickerOptionComponent.displayName = 'PickerOptionComponent';
 
 const isMatch = (model: WithStarred<LoRAModelConfig>, searchTerm: string) => {

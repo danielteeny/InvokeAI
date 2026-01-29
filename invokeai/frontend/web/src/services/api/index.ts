@@ -52,6 +52,7 @@ const tagTypes = [
   'WorkflowTagCounts',
   'WorkflowCategoryCounts',
   'StylePreset',
+  'LoRAPreset',
   'Schema',
   'QueueCountsByDestination',
   // This is invalidated on reconnect. It should be used for queries that have changing data,

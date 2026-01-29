@@ -835,7 +835,15 @@
         }
     },
     "lora": {
-        "weight": "Weight"
+        "weight": "Weight",
+        "savePreset": "Save LoRA Preset",
+        "presetNamePlaceholder": "Enter preset name...",
+        "savedPresets": "Saved Presets",
+        "loadPreset": "Load Preset",
+        "deletePreset": "Delete Preset",
+        "noPresets": "No presets saved",
+        "noLoRAsToSave": "Add LoRAs first to save a preset",
+        "presets": "Presets"
     },
     "metadata": {
         "allPrompts": "All Prompts",
@@ -1110,8 +1118,9 @@
         "noRefinerModelsInstalled": "No SDXL Refiner models installed",
         "defaultVAE": "Default VAE",
         "noCompatibleLoRAs": "No Compatible LoRAs",
-        "sortLoRAsAlphabetically": "Sort LoRAs Alphabetically",
-        "sortLoRAsOrderApplied": "Sort LoRAs by Order Applied"
+        "sortLoRAsManual": "Manual Order",
+        "sortLoRAsAlphabetically": "Alphabetical",
+        "sortLoRAsByCategory": "Group by Category"
     },
     "nodes": {
         "arithmeticSequence": "Arithmetic Sequence",
