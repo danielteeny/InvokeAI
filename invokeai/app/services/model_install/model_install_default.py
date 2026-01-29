@@ -66,6 +66,27 @@ if TYPE_CHECKING:
 
 TMPDIR_PREFIX = "tmpinstall_"
 
+# Folder names that map to LoRA categories
+LORA_FOLDER_TO_CATEGORY: Dict[str, str] = {
+    "style": "style",
+    "styles": "style",
+    "character": "character",
+    "characters": "character",
+    "concept": "concept",
+    "concepts": "concept",
+    "pose": "pose",
+    "poses": "pose",
+    "clothing": "clothing",
+    "clothes": "clothing",
+    "outfit": "clothing",
+    "outfits": "clothing",
+    "background": "background",
+    "backgrounds": "background",
+    "quality": "quality",
+    "enhancement": "quality",
+    "upscale": "quality",
+}
+
 
 class ModelInstallService(ModelInstallServiceBase):
     """class for InvokeAI model installation."""
@@ -692,6 +713,20 @@ class ModelInstallService(ModelInstallServiceBase):
 
         return result.config
 
+    @staticmethod
+    def _extract_category_from_path(model_path: Path) -> Optional[str]:
+        """Extract LoRA category from folder path.
+
+        Checks parent folder names against known category mappings.
+        For example: loras/style/my_model.safetensors -> "style"
+        """
+        # Check each part of the path for category folder names
+        for part in model_path.parts:
+            part_lower = part.lower()
+            if part_lower in LORA_FOLDER_TO_CATEGORY:
+                return LORA_FOLDER_TO_CATEGORY[part_lower]
+        return None
+
     def _register(
         self, model_path: Path, config: Optional[ModelRecordChanges] = None, info: Optional[AnyModelConfig] = None
     ) -> str:
@@ -702,6 +737,14 @@ class ModelInstallService(ModelInstallServiceBase):
         # Apply LoRA metadata if applicable
         model_images_path = self.app_config.models_path / "model_images"
         apply_lora_metadata(info, model_path.resolve(), model_images_path)
+
+        # Auto-assign category for LoRA models based on folder structure
+        # Only if category is not already set in config
+        if hasattr(info, "category") and info.category is None:
+            extracted_category = self._extract_category_from_path(model_path)
+            if extracted_category:
+                info.category = extracted_category
+                self._logger.debug(f"Auto-assigned category '{extracted_category}' to LoRA from folder path")
 
         model_path = model_path.resolve()
 

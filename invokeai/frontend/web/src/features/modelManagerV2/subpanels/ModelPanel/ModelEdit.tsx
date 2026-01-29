@@ -23,6 +23,7 @@ import { type UpdateModelArg, useUpdateModelMutation } from 'services/api/endpoi
 import type { AnyModelConfig } from 'services/api/types';
 
 import BaseModelSelect from './Fields/BaseModelSelect';
+import CategorySelect from './Fields/CategorySelect';
 import ModelFormatSelect from './Fields/ModelFormatSelect';
 import ModelTypeSelect from './Fields/ModelTypeSelect';
 import ModelVariantSelect from './Fields/ModelVariantSelect';
@@ -159,6 +160,12 @@ export const ModelEdit = memo(({ modelConfig }: Props) => {
                 <FormLabel>{t('modelManager.upcastAttention')}</FormLabel>
                 <Checkbox {...form.register('upcast_attention')} />
               </FormControl>
+              {modelConfig.type === 'lora' && (
+                <FormControl flexDir="column" alignItems="flex-start" gap={1}>
+                  <FormLabel>{t('modelManager.category')}</FormLabel>
+                  <CategorySelect control={form.control} />
+                </FormControl>
+              )}
             </SimpleGrid>
           </Flex>
         </form>

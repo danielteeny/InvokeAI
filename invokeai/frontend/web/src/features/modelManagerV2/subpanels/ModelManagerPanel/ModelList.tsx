@@ -19,16 +19,19 @@ import {
   modelConfigsAdapterSelectors,
   useBulkDeleteModelsMutation,
   useGetModelConfigsQuery,
+  useUpdateModelMutation,
 } from 'services/api/endpoints/models';
 import type { AnyModelConfig } from 'services/api/types';
 
 import { BulkDeleteModelsModal } from './BulkDeleteModelsModal';
+import { BulkSetCategoryModal } from './BulkSetCategoryModal';
 import { FetchingModelsLoader } from './FetchingModelsLoader';
 import { ModelListWrapper } from './ModelListWrapper';
 
 const log = logger('models');
 
 export const [useBulkDeleteModal] = buildUseDisclosure(false);
+export const [useBulkSetCategoryModal] = buildUseDisclosure(false);
 
 const ModelList = () => {
   const dispatch = useAppDispatch();
@@ -37,11 +40,14 @@ const ModelList = () => {
   const selectedModelKeys = useAppSelector(selectSelectedModelKeys);
   const { t } = useTranslation();
   const toast = useToast();
-  const { isOpen, close } = useBulkDeleteModal();
+  const { isOpen: isDeleteOpen, close: closeDelete } = useBulkDeleteModal();
+  const { isOpen: isCategoryOpen, close: closeCategory } = useBulkSetCategoryModal();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
 
   const { data, isLoading } = useGetModelConfigsQuery();
   const [bulkDeleteModels] = useBulkDeleteModelsMutation();
+  const [updateModel] = useUpdateModelMutation();
 
   const models = useMemo(() => {
     const modelConfigs = modelConfigsAdapterSelectors.selectAll(data ?? { ids: [], entities: {} });
@@ -72,7 +78,7 @@ const ModelList = () => {
       // Clear selection and close modal
       dispatch(clearModelSelection());
       dispatch(setSelectedModelKey(null));
-      close();
+      closeDelete();
 
       // Show success/failure toast
       if (result.failed.length === 0) {
@@ -125,7 +131,95 @@ const ModelList = () => {
     } finally {
       setIsDeleting(false);
     }
-  }, [bulkDeleteModels, selectedModelKeys, dispatch, close, toast, t]);
+  }, [bulkDeleteModels, selectedModelKeys, dispatch, closeDelete, toast, t]);
+
+  const handleConfirmBulkSetCategory = useCallback(
+    async (category: string) => {
+      setIsUpdatingCategory(true);
+      const modelConfigs = modelConfigsAdapterSelectors.selectAll(data ?? { ids: [], entities: {} });
+
+      // Filter to only LoRA models from the selection
+      const loraKeys = selectedModelKeys.filter((key) => {
+        const model = modelConfigs.find((m) => m.key === key);
+        return model?.type === 'lora';
+      });
+
+      if (loraKeys.length === 0) {
+        toast({
+          id: 'BULK_SET_CATEGORY_NO_LORAS',
+          title: t('modelManager.noLoRAsSelected', {
+            defaultValue: 'No LoRA models selected',
+          }),
+          description: t('modelManager.onlyLoRAsHaveCategories', {
+            defaultValue: 'Only LoRA models support categories.',
+          }),
+          status: 'warning',
+        });
+        setIsUpdatingCategory(false);
+        closeCategory();
+        return;
+      }
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const key of loraKeys) {
+        try {
+          // Cast to 'as any' since the OpenAPI schema types don't include 'category' yet
+          // The API accepts this field for LoRA models
+          await updateModel({
+            key,
+            body: { category } as Record<string, unknown>,
+          }).unwrap();
+          successCount++;
+        } catch (err) {
+          log.error({ error: serializeError(err as Error), key }, 'Failed to update model category');
+          failCount++;
+        }
+      }
+
+      // Clear selection and close modal
+      dispatch(clearModelSelection());
+      closeCategory();
+
+      // Show result toast
+      if (failCount === 0) {
+        toast({
+          id: 'BULK_SET_CATEGORY_SUCCESS',
+          title: t('modelManager.categoryUpdated', {
+            count: successCount,
+            defaultValue: `Updated category for ${successCount} model(s)`,
+          }),
+          status: 'success',
+        });
+      } else if (successCount === 0) {
+        toast({
+          id: 'BULK_SET_CATEGORY_FAILED',
+          title: t('modelManager.categoryUpdateFailed', {
+            defaultValue: 'Failed to update categories',
+          }),
+          status: 'error',
+        });
+      } else {
+        toast({
+          id: 'BULK_SET_CATEGORY_PARTIAL',
+          title: t('modelManager.categoryUpdatePartial', {
+            defaultValue: 'Partially completed',
+          }),
+          description: t('modelManager.someCategoriesUpdated', {
+            updated: successCount,
+            failed: failCount,
+            defaultValue: `${successCount} updated, ${failCount} failed`,
+          }),
+          status: 'warning',
+        });
+      }
+
+      log.info(`Bulk category update completed: ${successCount} updated, ${failCount} failed`);
+      setIsUpdatingCategory(false);
+    },
+    [data, selectedModelKeys, updateModel, dispatch, closeCategory, toast, t]
+  );
 
   return (
     <>
@@ -146,11 +240,19 @@ const ModelList = () => {
       </Flex>
 
       <BulkDeleteModelsModal
-        isOpen={isOpen}
-        onClose={close}
+        isOpen={isDeleteOpen}
+        onClose={closeDelete}
         onConfirm={handleConfirmBulkDelete}
         modelCount={selectedModelKeys.length}
         isDeleting={isDeleting}
+      />
+
+      <BulkSetCategoryModal
+        isOpen={isCategoryOpen}
+        onClose={closeCategory}
+        onConfirm={handleConfirmBulkSetCategory}
+        modelCount={selectedModelKeys.length}
+        isUpdating={isUpdatingCategory}
       />
     </>
   );

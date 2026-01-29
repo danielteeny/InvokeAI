@@ -1,4 +1,5 @@
 import { Box, Divider, Flex, SimpleGrid } from '@invoke-ai/ui-library';
+import { LORA_CATEGORY_TO_NAME } from 'features/modelManagerV2/models';
 import { ControlAdapterModelDefaultSettings } from 'features/modelManagerV2/subpanels/ModelPanel/ControlAdapterModelDefaultSettings/ControlAdapterModelDefaultSettings';
 import { LoRAModelDefaultSettings } from 'features/modelManagerV2/subpanels/ModelPanel/LoRAModelDefaultSettings/LoRAModelDefaultSettings';
 import { ModelConvertButton } from 'features/modelManagerV2/subpanels/ModelPanel/ModelConvertButton';
@@ -8,7 +9,7 @@ import { TriggerPhrases } from 'features/modelManagerV2/subpanels/ModelPanel/Tri
 import { filesize } from 'filesize';
 import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AnyModelConfig } from 'services/api/types';
+import type { AnyModelConfig, LoRAModelConfig } from 'services/api/types';
 
 import { isExternalModel } from './isExternalModel';
 import { MainModelDefaultSettings } from './MainModelDefaultSettings/MainModelDefaultSettings';
@@ -80,6 +81,16 @@ export const ModelView = memo(({ modelConfig }: Props) => {
             )}
             {modelConfig.type === 'ip_adapter' && modelConfig.format === 'invokeai' && (
               <ModelAttrView label={t('modelManager.imageEncoderModelId')} value={modelConfig.image_encoder_model_id} />
+            )}
+            {modelConfig.type === 'lora' && (
+              <ModelAttrView
+                label={t('modelManager.category')}
+                value={
+                  LORA_CATEGORY_TO_NAME[
+                    (modelConfig as LoRAModelConfig & { category?: string | null }).category ?? 'uncategorized'
+                  ] ?? 'Uncategorized'
+                }
+              />
             )}
           </SimpleGrid>
         </Box>

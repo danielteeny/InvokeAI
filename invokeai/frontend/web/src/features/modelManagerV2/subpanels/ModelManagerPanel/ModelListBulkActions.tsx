@@ -10,11 +10,11 @@ import {
 } from 'features/modelManagerV2/store/modelManagerV2Slice';
 import { t } from 'i18next';
 import { memo, useCallback, useMemo } from 'react';
-import { PiCaretDownBold, PiTrashSimpleBold } from 'react-icons/pi';
+import { PiCaretDownBold, PiFolderSimpleBold, PiTrashSimpleBold } from 'react-icons/pi';
 import { modelConfigsAdapterSelectors, useGetModelConfigsQuery } from 'services/api/endpoints/models';
 import type { AnyModelConfig } from 'services/api/types';
 
-import { useBulkDeleteModal } from './ModelList';
+import { useBulkDeleteModal, useBulkSetCategoryModal } from './ModelList';
 
 const ModelListBulkActionsSx: SystemStyleObject = {
   alignItems: 'center',
@@ -33,10 +33,15 @@ export const ModelListBulkActions = memo(({ sx }: ModelListBulkActionsProps) => 
   const searchTerm = useAppSelector(selectSearchTerm);
   const { data } = useGetModelConfigsQuery();
   const bulkDeleteModal = useBulkDeleteModal();
+  const bulkSetCategoryModal = useBulkSetCategoryModal();
 
   const handleBulkDelete = useCallback(() => {
     bulkDeleteModal.open();
   }, [bulkDeleteModal]);
+
+  const handleBulkSetCategory = useCallback(() => {
+    bulkSetCategoryModal.open();
+  }, [bulkSetCategoryModal]);
 
   // Calculate displayed (filtered) model keys
   const displayedModelKeys = useMemo(() => {
@@ -103,6 +108,9 @@ export const ModelListBulkActions = memo(({ sx }: ModelListBulkActionsProps) => 
             {t('modelManager.actions')}
           </MenuButton>
           <MenuList>
+            <MenuItem icon={<PiFolderSimpleBold />} onClick={handleBulkSetCategory}>
+              {t('modelManager.setCategory')}
+            </MenuItem>
             <MenuItem icon={<PiTrashSimpleBold />} onClick={handleBulkDelete} color="error.300">
               {t('modelManager.deleteModels', { count: selectionCount })}
             </MenuItem>

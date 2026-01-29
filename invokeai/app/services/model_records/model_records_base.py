@@ -89,6 +89,12 @@ class ModelRecordChanges(BaseModelExcludeNull):
         Field(description="Default settings for this model", default=None)
     )
 
+    # LoRA-specific changes
+    category: Optional[str] = Field(
+        description="User-defined category for LoRA organization (e.g., 'style', 'character', 'concept')",
+        default=None,
+    )
+
     # Checkpoint-specific changes
     # TODO(MM2): Should we expose these? Feels footgun-y...
     variant: Optional[ModelVariantType | ClipVariantType | FluxVariantType | Flux2VariantType | Qwen3VariantType] = (

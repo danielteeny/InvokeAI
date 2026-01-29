@@ -250,3 +250,45 @@ export const SUPPORTS_NEGATIVE_PROMPT_BASE_MODELS: BaseModelType[] = [
   'sd-3',
   'z-image',
 ];
+
+/**
+ * Mapping of LoRA category ID to color scheme
+ */
+export const LORA_CATEGORY_TO_COLOR: Record<string, string> = {
+  style: 'purple',
+  character: 'green',
+  concept: 'blue',
+  pose: 'orange',
+  clothing: 'pink',
+  background: 'teal',
+  quality: 'yellow',
+  uncategorized: 'base',
+};
+
+/**
+ * Mapping of LoRA category ID to display name
+ */
+export const LORA_CATEGORY_TO_NAME: Record<string, string> = {
+  style: 'Style',
+  character: 'Character',
+  concept: 'Concept',
+  pose: 'Pose',
+  clothing: 'Clothing',
+  background: 'Background',
+  quality: 'Quality/Enhancement',
+  uncategorized: 'Uncategorized',
+};
+
+/**
+ * Default LoRA categories in display order
+ */
+export const LORA_CATEGORIES_ORDER = [
+  'style',
+  'character',
+  'concept',
+  'pose',
+  'clothing',
+  'background',
+  'quality',
+  'uncategorized',
+] as const;

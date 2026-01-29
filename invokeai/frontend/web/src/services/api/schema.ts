@@ -403,6 +403,26 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/models/lora-categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Lora Categories
+         * @description Get the list of available LoRA categories for organization.
+         */
+        get: operations["get_lora_categories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/download_queue/": {
         parameters: {
             query?: never;
@@ -14943,6 +14963,27 @@ export type components = {
             base: "any";
         };
         /**
+         * LoRACategoryInfo
+         * @description Information about a LoRA category.
+         */
+        LoRACategoryInfo: {
+            /**
+             * Id
+             * @description Unique identifier for the category
+             */
+            id: string;
+            /**
+             * Name
+             * @description Display name for the category
+             */
+            name: string;
+            /**
+             * Color
+             * @description Color scheme for the category (e.g., 'purple', 'green')
+             */
+            color: string;
+        };
+        /**
          * Apply LoRA Collection - SD1.5
          * @description Applies a collection of LoRAs to the provided UNet and CLIP models.
          */
@@ -15210,6 +15251,11 @@ export type components = {
             /** @description Default settings for this model */
             default_settings: components["schemas"]["LoraModelDefaultSettings"] | null;
             /**
+             * Category
+             * @description User-defined category for organization (e.g., 'style', 'character', 'concept')
+             */
+            category: string | null;
+            /**
              * Format
              * @default diffusers
              * @constant
@@ -15284,6 +15330,11 @@ export type components = {
             trigger_phrases: string[] | null;
             /** @description Default settings for this model */
             default_settings: components["schemas"]["LoraModelDefaultSettings"] | null;
+            /**
+             * Category
+             * @description User-defined category for organization (e.g., 'style', 'character', 'concept')
+             */
+            category: string | null;
             /**
              * Format
              * @default diffusers
@@ -15360,6 +15411,11 @@ export type components = {
             /** @description Default settings for this model */
             default_settings: components["schemas"]["LoraModelDefaultSettings"] | null;
             /**
+             * Category
+             * @description User-defined category for organization (e.g., 'style', 'character', 'concept')
+             */
+            category: string | null;
+            /**
              * Format
              * @default diffusers
              * @constant
@@ -15434,6 +15490,11 @@ export type components = {
             trigger_phrases: string[] | null;
             /** @description Default settings for this model */
             default_settings: components["schemas"]["LoraModelDefaultSettings"] | null;
+            /**
+             * Category
+             * @description User-defined category for organization (e.g., 'style', 'character', 'concept')
+             */
+            category: string | null;
             /**
              * Format
              * @default diffusers
@@ -15513,6 +15574,11 @@ export type components = {
             /** @description Default settings for this model */
             default_settings: components["schemas"]["LoraModelDefaultSettings"] | null;
             /**
+             * Category
+             * @description User-defined category for organization (e.g., 'style', 'character', 'concept')
+             */
+            category: string | null;
+            /**
              * Format
              * @default diffusers
              * @constant
@@ -15587,6 +15653,11 @@ export type components = {
             trigger_phrases: string[] | null;
             /** @description Default settings for this model */
             default_settings: components["schemas"]["LoraModelDefaultSettings"] | null;
+            /**
+             * Category
+             * @description User-defined category for organization (e.g., 'style', 'character', 'concept')
+             */
+            category: string | null;
             /**
              * Format
              * @default lycoris
@@ -15663,6 +15734,11 @@ export type components = {
             /** @description Default settings for this model */
             default_settings: components["schemas"]["LoraModelDefaultSettings"] | null;
             /**
+             * Category
+             * @description User-defined category for organization (e.g., 'style', 'character', 'concept')
+             */
+            category: string | null;
+            /**
              * Format
              * @default lycoris
              * @constant
@@ -15738,6 +15814,11 @@ export type components = {
             /** @description Default settings for this model */
             default_settings: components["schemas"]["LoraModelDefaultSettings"] | null;
             /**
+             * Category
+             * @description User-defined category for organization (e.g., 'style', 'character', 'concept')
+             */
+            category: string | null;
+            /**
              * Format
              * @default lycoris
              * @constant
@@ -15812,6 +15893,11 @@ export type components = {
             trigger_phrases: string[] | null;
             /** @description Default settings for this model */
             default_settings: components["schemas"]["LoraModelDefaultSettings"] | null;
+            /**
+             * Category
+             * @description User-defined category for organization (e.g., 'style', 'character', 'concept')
+             */
+            category: string | null;
             /**
              * Format
              * @default lycoris
@@ -15891,6 +15977,11 @@ export type components = {
             /** @description Default settings for this model */
             default_settings: components["schemas"]["LoraModelDefaultSettings"] | null;
             /**
+             * Category
+             * @description User-defined category for organization (e.g., 'style', 'character', 'concept')
+             */
+            category: string | null;
+            /**
              * Format
              * @default lycoris
              * @constant
@@ -15966,6 +16057,11 @@ export type components = {
             /** @description Default settings for this model */
             default_settings: components["schemas"]["LoraModelDefaultSettings"] | null;
             /**
+             * Category
+             * @description User-defined category for organization (e.g., 'style', 'character', 'concept')
+             */
+            category: string | null;
+            /**
              * Format
              * @default omi
              * @constant
@@ -16040,6 +16136,11 @@ export type components = {
             trigger_phrases: string[] | null;
             /** @description Default settings for this model */
             default_settings: components["schemas"]["LoraModelDefaultSettings"] | null;
+            /**
+             * Category
+             * @description User-defined category for organization (e.g., 'style', 'character', 'concept')
+             */
+            category: string | null;
             /**
              * Format
              * @default omi
@@ -20098,6 +20199,11 @@ export type components = {
              * @description Default settings for this model
              */
             default_settings?: components["schemas"]["MainModelDefaultSettings"] | components["schemas"]["LoraModelDefaultSettings"] | components["schemas"]["ControlAdapterDefaultSettings"] | null;
+            /**
+             * Category
+             * @description User-defined category for LoRA organization (e.g., 'style', 'character', 'concept')
+             */
+            category?: string | null;
             /**
              * Variant
              * @description The variant of the model.
@@ -28153,6 +28259,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HFTokenStatus"];
+                };
+            };
+        };
+    };
+    get_lora_categories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoRACategoryInfo"][];
                 };
             };
         };

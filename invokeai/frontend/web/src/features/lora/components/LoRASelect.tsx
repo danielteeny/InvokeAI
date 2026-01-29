@@ -3,11 +3,10 @@ import { EMPTY_ARRAY } from 'app/store/constants';
 import { createMemoizedSelector } from 'app/store/createMemoizedSelector';
 import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
 import { InformationalPopover } from 'common/components/InformationalPopover/InformationalPopover';
-import type { GroupStatusMap } from 'common/components/Picker/Picker';
 import { loraAdded, selectLoRAsSlice } from 'features/controlLayers/store/lorasSlice';
 import { selectBase } from 'features/controlLayers/store/paramsSlice';
+import { LoRAPicker } from 'features/lora/components/LoRAPicker';
 import { SortLoRAsButton } from 'features/lora/components/SortLoRAsButton';
-import { ModelPicker } from 'features/parameters/components/ModelPicker';
 import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLoRAModels } from 'services/api/hooks/modelsByType';
@@ -17,12 +16,17 @@ const selectLoRAIds = createMemoizedSelector(selectLoRAsSlice, ({ loras }) => lo
 
 const selectLoRAs = createMemoizedSelector(selectLoRAsSlice, ({ loras }) => loras);
 
+const selectLoRAModelKeys = createMemoizedSelector(selectLoRAsSlice, ({ loras }) =>
+  loras.map(({ model }) => model.key)
+);
+
 const LoRASelect = () => {
   const dispatch = useAppDispatch();
   const [modelConfigs, { isLoading }] = useLoRAModels();
   const { t } = useTranslation();
   const addedLoRAIds = useAppSelector(selectLoRAIds);
   const loras = useAppSelector(selectLoRAs);
+  const selectedModelKeys = useAppSelector(selectLoRAModelKeys);
 
   const currentBaseModel = useAppSelector(selectBase);
 
@@ -64,34 +68,23 @@ const LoRASelect = () => {
     return t('models.addLora');
   }, [isLoading, compatibleLoRAs.length, currentBaseModel, t]);
 
-  // Calculate initial group states to default to the current base model architecture
-  const initialGroupStates = useMemo(() => {
-    if (!currentBaseModel) {
-      return undefined;
-    }
-
-    // Return a map with only the current base model group enabled
-    return { [currentBaseModel]: true } satisfies GroupStatusMap;
-  }, [currentBaseModel]);
-
   return (
-    <Flex alignItems="center" gap={2}>
-      <InformationalPopover feature="lora">
-        <FormLabel>{t('models.concepts')}</FormLabel>
-      </InformationalPopover>
-      <ModelPicker
-        pickerId="lora-select"
-        modelConfigs={compatibleLoRAs}
-        onChange={onChange}
-        grouped={false}
-        selectedModelConfig={undefined}
-        allowEmpty
-        placeholder={placeholder}
-        getIsOptionDisabled={getIsDisabled}
-        initialGroupStates={initialGroupStates}
-        noOptionsText={currentBaseModel ? t('models.noCompatibleLoRAs') : t('models.selectModel')}
-      />
-      <SortLoRAsButton loraIds={addedLoRAIds} />
+    <Flex flexDir="column" gap={2}>
+      <Flex alignItems="center" gap={2}>
+        <InformationalPopover feature="lora">
+          <FormLabel>{t('models.concepts')}</FormLabel>
+        </InformationalPopover>
+        <LoRAPicker
+          pickerId="lora-select"
+          modelConfigs={compatibleLoRAs}
+          selectedModelKeys={selectedModelKeys}
+          onChange={onChange}
+          placeholder={placeholder}
+          getIsOptionDisabled={getIsDisabled}
+          noOptionsText={currentBaseModel ? t('models.noCompatibleLoRAs') : t('models.selectModel')}
+        />
+        <SortLoRAsButton loraIds={addedLoRAIds} />
+      </Flex>
     </Flex>
   );
 };

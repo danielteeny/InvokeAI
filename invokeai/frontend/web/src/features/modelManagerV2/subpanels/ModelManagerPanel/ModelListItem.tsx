@@ -8,6 +8,7 @@ import {
   setSelectedModelKey,
   toggleModelSelection,
 } from 'features/modelManagerV2/store/modelManagerV2Slice';
+import { CategoryBadge } from 'features/modelManagerV2/subpanels/ModelManagerPanel/CategoryBadge';
 import ModelBaseBadge from 'features/modelManagerV2/subpanels/ModelManagerPanel/ModelBaseBadge';
 import ModelFormatBadge from 'features/modelManagerV2/subpanels/ModelManagerPanel/ModelFormatBadge';
 import { ModelDeleteButton } from 'features/modelManagerV2/subpanels/ModelPanel/ModelDeleteButton';
@@ -15,7 +16,7 @@ import { filesize } from 'filesize';
 import type { ChangeEvent, MouseEvent } from 'react';
 import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AnyModelConfig } from 'services/api/types';
+import type { AnyModelConfig, LoRAModelConfig } from 'services/api/types';
 
 import ModelImage from './ModelImage';
 
@@ -139,6 +140,9 @@ const ModelListItem = ({ model }: ModelListItemProps) => {
             <Flex gap={1} mt={1}>
               <ModelBaseBadge base={model.base} />
               <ModelFormatBadge format={model.format} />
+              {model.type === 'lora' && (
+                <CategoryBadge category={(model as LoRAModelConfig & { category?: string | null }).category} />
+              )}
             </Flex>
           </Flex>
         </Flex>

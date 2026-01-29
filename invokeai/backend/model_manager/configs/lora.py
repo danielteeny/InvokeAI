@@ -49,6 +49,10 @@ class LoRA_Config_Base(ABC, BaseModel):
         default=None,
         description="Default settings for this model",
     )
+    category: str | None = Field(
+        default=None,
+        description="User-defined category for organization (e.g., 'style', 'character', 'concept')",
+    )
 
 
 def _get_flux_lora_format(mod: ModelOnDisk) -> FluxLoRAFormat | None:

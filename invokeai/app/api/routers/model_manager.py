@@ -55,6 +55,26 @@ model_manager_router = APIRouter(prefix="/v2/models", tags=["model_manager"])
 IMAGE_MAX_AGE = 31536000
 
 
+# Default LoRA categories for organization
+class LoRACategoryInfo(BaseModel):
+    """Information about a LoRA category."""
+
+    id: str = Field(description="Unique identifier for the category")
+    name: str = Field(description="Display name for the category")
+    color: str = Field(description="Color scheme for the category (e.g., 'purple', 'green')")
+
+
+DEFAULT_LORA_CATEGORIES: List[LoRACategoryInfo] = [
+    LoRACategoryInfo(id="style", name="Style", color="purple"),
+    LoRACategoryInfo(id="character", name="Character", color="green"),
+    LoRACategoryInfo(id="concept", name="Concept", color="blue"),
+    LoRACategoryInfo(id="pose", name="Pose", color="orange"),
+    LoRACategoryInfo(id="clothing", name="Clothing", color="pink"),
+    LoRACategoryInfo(id="background", name="Background", color="teal"),
+    LoRACategoryInfo(id="quality", name="Quality/Enhancement", color="yellow"),
+]
+
+
 class ModelsList(BaseModel):
     """Return list of configs."""
 
@@ -228,6 +248,9 @@ async def reidentify_model(
         result.config.trigger_phrases = config.trigger_phrases
         result.config.source = config.source
         result.config.source_type = config.source_type
+        # Preserve category for LoRA models
+        if hasattr(config, "category") and hasattr(result.config, "category"):
+            result.config.category = config.category
 
         new_config = ApiDependencies.invoker.services.model_manager.store.replace_model(config.key, result.config)
         return new_config
@@ -1068,3 +1091,13 @@ async def do_hf_login(
 @model_manager_router.delete("/hf_login", operation_id="reset_hf_token", response_model=HFTokenStatus)
 async def reset_hf_token() -> HFTokenStatus:
     return HFTokenHelper.reset_token()
+
+
+@model_manager_router.get(
+    "/lora-categories",
+    operation_id="get_lora_categories",
+    response_model=List[LoRACategoryInfo],
+)
+async def get_lora_categories() -> List[LoRACategoryInfo]:
+    """Get the list of available LoRA categories for organization."""
+    return DEFAULT_LORA_CATEGORIES

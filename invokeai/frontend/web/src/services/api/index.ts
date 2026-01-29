@@ -45,6 +45,7 @@ const tagTypes = [
   'TextualInversionModel',
   'ControlNetModel',
   'LoRAModel',
+  'LoRACategories',
   'SDXLRefinerModel',
   'Workflow',
   'WorkflowTags',

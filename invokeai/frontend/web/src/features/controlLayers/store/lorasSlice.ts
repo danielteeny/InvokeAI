@@ -22,6 +22,8 @@ const zLoRAsState = z.object({
   loras: z.array(zLoRA),
   sortMode: z.enum(['order-applied', 'alphabetical']).default('order-applied'),
   preSortOrder: z.array(z.string()).optional(),
+  categoryViewEnabled: z.boolean().default(false),
+  selectedCategory: z.string().nullable().default(null),
 });
 type LoRAsState = z.infer<typeof zLoRAsState>;
 
@@ -29,6 +31,8 @@ const getInitialState = (): LoRAsState => ({
   loras: [],
   sortMode: 'order-applied',
   preSortOrder: undefined,
+  categoryViewEnabled: false,
+  selectedCategory: null,
 });
 
 const selectLoRA = (state: LoRAsState, id: string) => state.loras.find((lora) => lora.id === id);
@@ -113,6 +117,16 @@ const slice = createSlice({
     loraAllDeleted: (state) => {
       state.loras = [];
     },
+    loraCategoryViewToggled: (state) => {
+      state.categoryViewEnabled = !state.categoryViewEnabled;
+      // Reset selected category when toggling off
+      if (!state.categoryViewEnabled) {
+        state.selectedCategory = null;
+      }
+    },
+    loraSelectedCategoryChanged: (state, action: PayloadAction<string | null>) => {
+      state.selectedCategory = action.payload;
+    },
   },
   extraReducers(builder) {
     builder.addCase(paramsReset, () => {
@@ -131,6 +145,8 @@ export const {
   loraAllDeleted,
   lorasReordered,
   lorasSortToggled,
+  loraCategoryViewToggled,
+  loraSelectedCategoryChanged,
 } = slice.actions;
 
 export const lorasSliceConfig: SliceConfig<typeof slice> = {
@@ -145,6 +161,8 @@ export const lorasSliceConfig: SliceConfig<typeof slice> = {
 export const selectLoRAsSlice = (state: RootState) => state.loras;
 export const selectAddedLoRAs = createSelector(selectLoRAsSlice, (loras) => loras.loras);
 export const selectLoRASortMode = createSelector(selectLoRAsSlice, (loras) => loras.sortMode);
+export const selectLoraCategoryViewEnabled = createSelector(selectLoRAsSlice, (loras) => loras.categoryViewEnabled);
+export const selectLoraSelectedCategory = createSelector(selectLoRAsSlice, (loras) => loras.selectedCategory);
 export const buildSelectLoRA = (id: string) =>
   createSelector([selectLoRAsSlice], (loras) => {
     return selectLoRA(loras, id);
