@@ -30,7 +30,7 @@ class FluxLoRALoaderOutput(BaseInvocationOutput):
     title="Apply LoRA - FLUX",
     tags=["lora", "model", "flux"],
     category="model",
-    version="1.2.1",
+    version="1.2.2",
 )
 class FluxLoRALoaderInvocation(BaseInvocation):
     """Apply a LoRA model to a FLUX transformer and/or text encoder."""
@@ -38,7 +38,7 @@ class FluxLoRALoaderInvocation(BaseInvocation):
     lora: ModelIdentifierField = InputField(
         description=FieldDescriptions.lora_model,
         title="LoRA",
-        ui_model_base=BaseModelType.Flux,
+        ui_model_base=[BaseModelType.Flux, BaseModelType.Flux2],
         ui_model_type=ModelType.LoRA,
     )
     weight: float = InputField(default=0.75, description=FieldDescriptions.lora_weight)

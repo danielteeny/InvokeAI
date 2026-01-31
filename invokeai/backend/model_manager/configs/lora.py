@@ -64,6 +64,34 @@ def _get_flux_lora_format(mod: ModelOnDisk) -> FluxLoRAFormat | None:
     return value
 
 
+def _metadata_indicates_flux2(metadata: dict[str, str]) -> bool:
+    """Check if metadata indicates this is a Flux 2 LoRA."""
+    metadata_str = str(metadata).lower()
+    flux2_indicators = ["flux2", "flux 2", "flux.2", "klein", "qwen3"]
+    return any(indicator in metadata_str for indicator in flux2_indicators)
+
+
+def _filename_indicates_flux2(mod: ModelOnDisk) -> bool:
+    """Check if filename indicates this is a Flux 2 LoRA."""
+    filename = mod.path.stem.lower()
+    flux2_indicators = ["flux2", "flux_2", "flux-2", "flux.2"]
+    return any(indicator in filename for indicator in flux2_indicators)
+
+
+def _state_dict_indicates_flux2(state_dict: dict) -> bool:
+    """Check state dict shapes for Flux 2 indicators."""
+    # Check context_embedder dimensions (Flux 2 > 4096)
+    for key in state_dict:
+        if "context_embedder" in key and hasattr(state_dict[key], "shape"):
+            if any(dim > 4096 for dim in state_dict[key].shape):
+                return True
+        # Check img_in dimensions (Flux 2 = 128 channels)
+        if "img_in" in key and hasattr(state_dict[key], "shape"):
+            if any(dim > 64 for dim in state_dict[key].shape):
+                return True
+    return False
+
+
 class LoRA_OMI_Config_Base(LoRA_Config_Base):
     format: Literal[ModelFormat.OMI] = Field(default=ModelFormat.OMI)
 
@@ -224,6 +252,61 @@ class LoRA_LyCORIS_SDXL_Config(LoRA_LyCORIS_Config_Base, Config_Base):
 
 class LoRA_LyCORIS_FLUX_Config(LoRA_LyCORIS_Config_Base, Config_Base):
     base: Literal[BaseModelType.Flux] = Field(default=BaseModelType.Flux)
+
+    @classmethod
+    def _validate_base(cls, mod: ModelOnDisk) -> None:
+        """Raise `NotAMatch` if the model base does not match this config class.
+
+        Explicitly rejects Flux 2 LoRAs to avoid false positives.
+        """
+        # Check if this is a Flux 2 LoRA - if so, reject it
+        if _filename_indicates_flux2(mod) or _metadata_indicates_flux2(mod.metadata()):
+            raise NotAMatchError("model looks like Flux 2 LoRA, not Flux 1")
+
+        # Check state dict for Flux 2 indicators
+        if _state_dict_indicates_flux2(mod.load_state_dict()):
+            raise NotAMatchError("model looks like Flux 2 LoRA based on state dict shapes")
+
+        # Otherwise, run the standard base validation
+        expected_base = cls.model_fields["base"].default
+        recognized_base = cls._get_base_or_raise(mod)
+        if expected_base is not recognized_base:
+            raise NotAMatchError(f"base is {recognized_base}, not {expected_base}")
+
+
+class LoRA_LyCORIS_Flux2_Config(LoRA_LyCORIS_Config_Base, Config_Base):
+    """Model config for Flux 2 LoRA models in LyCORIS format."""
+
+    base: Literal[BaseModelType.Flux2] = Field(default=BaseModelType.Flux2)
+
+    @classmethod
+    def _validate_looks_like_lora(cls, mod: ModelOnDisk) -> None:
+        flux_format = _get_flux_lora_format(mod)
+        if flux_format in [FluxLoRAFormat.Control]:
+            raise NotAMatchError("model looks like Control LoRA")
+        if flux_format is None:
+            raise NotAMatchError("model does not look like a Flux LoRA")
+        # Must be Flux 2 specifically - check filename, metadata, or state dict
+        is_flux2 = (
+            _filename_indicates_flux2(mod)
+            or _metadata_indicates_flux2(mod.metadata())
+            or _state_dict_indicates_flux2(mod.load_state_dict())
+        )
+        if not is_flux2:
+            raise NotAMatchError("model looks like Flux 1 LoRA, not Flux 2")
+
+    @classmethod
+    def _get_base_or_raise(cls, mod: ModelOnDisk) -> BaseModelType:
+        return BaseModelType.Flux2
+
+
+def _is_flux2_lora(mod: ModelOnDisk) -> bool:
+    """Check if this LoRA is for Flux 2 (used to reject Flux 2 LoRAs from Flux 1 detection)."""
+    return (
+        _filename_indicates_flux2(mod)
+        or _metadata_indicates_flux2(mod.metadata())
+        or _state_dict_indicates_flux2(mod.load_state_dict())
+    )
 
 
 class LoRA_LyCORIS_ZImage_Config(LoRA_LyCORIS_Config_Base, Config_Base):

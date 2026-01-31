@@ -11,7 +11,9 @@ export const addFLUXLoRAs = (
   modelLoader: Invocation<'flux_model_loader'>,
   fluxTextEncoder: Invocation<'flux_text_encoder'>
 ): void => {
-  const enabledLoRAs = state.loras.loras.filter((l) => l.isEnabled && l.model.base === 'flux');
+  const enabledLoRAs = state.loras.loras.filter(
+    (l) => l.isEnabled && (l.model.base === 'flux' || l.model.base === 'flux2')
+  );
   const loraCount = enabledLoRAs.length;
 
   if (loraCount === 0) {

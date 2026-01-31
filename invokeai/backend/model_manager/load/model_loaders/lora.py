@@ -101,7 +101,8 @@ class LoRALoader(ModelLoader):
         if self._model_base == BaseModelType.StableDiffusionXL:
             state_dict = convert_sdxl_keys_to_diffusers_format(state_dict)
             model = lora_model_from_sd_state_dict(state_dict=state_dict)
-        elif self._model_base == BaseModelType.Flux:
+        elif self._model_base in [BaseModelType.Flux, BaseModelType.Flux2]:
+            # Flux 2 uses same LoRA format converters as Flux 1
             if config.format is ModelFormat.OMI:
                 # HACK(ryand): We set alpha=None for diffusers PEFT format models. These models are typically
                 # distributed as a single file without the associated metadata containing the alpha value. We chose
@@ -125,9 +126,11 @@ class LoRALoader(ModelLoader):
                 elif is_state_dict_likely_in_flux_xlabs_format(state_dict=state_dict):
                     model = lora_model_from_flux_xlabs_state_dict(state_dict=state_dict)
                 else:
-                    raise ValueError("LoRA model is in unsupported FLUX format")
+                    flux_version = "FLUX.2" if self._model_base == BaseModelType.Flux2 else "FLUX"
+                    raise ValueError(f"LoRA model is in unsupported {flux_version} format")
             else:
-                raise ValueError(f"LoRA model is in unsupported FLUX format: {config.format}")
+                flux_version = "FLUX.2" if self._model_base == BaseModelType.Flux2 else "FLUX"
+                raise ValueError(f"LoRA model is in unsupported {flux_version} format: {config.format}")
         elif self._model_base in [BaseModelType.StableDiffusion1, BaseModelType.StableDiffusion2]:
             # Currently, we don't apply any conversions for SD1 and SD2 LoRA models.
             model = lora_model_from_sd_state_dict(state_dict=state_dict)
