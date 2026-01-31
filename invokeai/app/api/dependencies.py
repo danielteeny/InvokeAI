@@ -37,6 +37,7 @@ from invokeai.app.services.session_processor.session_processor_default import (
 )
 from invokeai.app.services.session_queue.session_queue_sqlite import SqliteSessionQueue
 from invokeai.app.services.shared.sqlite.sqlite_util import init_db
+from invokeai.app.services.lora_category_records.lora_category_records_sqlite import SqliteLoraCategoryRecordStorage
 from invokeai.app.services.lora_preset_records.lora_preset_records_sqlite import SqliteLoRAPresetRecordsStorage
 from invokeai.app.services.style_preset_images.style_preset_images_disk import StylePresetImageFileStorageDisk
 from invokeai.app.services.style_preset_records.style_preset_records_sqlite import SqliteStylePresetRecordsStorage
@@ -155,6 +156,7 @@ class ApiDependencies:
         style_preset_records = SqliteStylePresetRecordsStorage(db=db)
         style_preset_image_files = StylePresetImageFileStorageDisk(style_presets_folder / "images")
         lora_preset_records = SqliteLoRAPresetRecordsStorage(db=db)
+        lora_category_records = SqliteLoraCategoryRecordStorage(db=db)
         workflow_thumbnails = WorkflowThumbnailFileStorageDisk(workflow_thumbnails_folder)
         client_state_persistence = ClientStatePersistenceSqlite(db=db)
 
@@ -189,6 +191,7 @@ class ApiDependencies:
             workflow_thumbnails=workflow_thumbnails,
             client_state_persistence=client_state_persistence,
             lora_preset_records=lora_preset_records,
+            lora_category_records=lora_category_records,
         )
 
         ApiDependencies.invoker = Invoker(services)

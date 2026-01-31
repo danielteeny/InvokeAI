@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from invokeai.app.services.lora_category_records.lora_category_records_base import LoraCategoryRecordStorageBase
 from invokeai.app.services.lora_preset_records.lora_preset_records_base import LoRAPresetRecordsStorageBase
 from invokeai.app.services.object_serializer.object_serializer_base import ObjectSerializerBase
 from invokeai.app.services.style_preset_images.style_preset_images_base import StylePresetImageFileStorageBase
@@ -77,6 +78,7 @@ class InvocationServices:
         workflow_thumbnails: "WorkflowThumbnailServiceBase",
         client_state_persistence: "ClientStatePersistenceABC",
         lora_preset_records: "LoRAPresetRecordsStorageBase",
+        lora_category_records: "LoraCategoryRecordStorageBase",
     ):
         self.board_images = board_images
         self.board_image_records = board_image_records
@@ -108,3 +110,4 @@ class InvocationServices:
         self.workflow_thumbnails = workflow_thumbnails
         self.client_state_persistence = client_state_persistence
         self.lora_preset_records = lora_preset_records
+        self.lora_category_records = lora_category_records

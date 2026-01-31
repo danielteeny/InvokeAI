@@ -18,6 +18,7 @@ import { LoRACard } from 'features/lora/components/LoRACard';
 import { LORA_CATEGORIES_ORDER, LORA_CATEGORY_TO_COLOR, LORA_CATEGORY_TO_NAME } from 'features/modelManagerV2/models';
 import { memo, useEffect, useMemo } from 'react';
 import { flushSync } from 'react-dom';
+import { useListLoraCategoriesQuery } from 'services/api/endpoints/loraCategories';
 import { useLoRAModels } from 'services/api/hooks/modelsByType';
 import type { LoRAModelConfig } from 'services/api/types';
 
@@ -56,6 +57,35 @@ export const LoRAList = memo(() => {
   const sortMode = useAppSelector(selectLoRASortMode);
   const manualOrder = useAppSelector(selectManualOrder);
   const [modelConfigs] = useLoRAModels();
+  const { data: categories } = useListLoraCategoriesQuery();
+
+  // Build category info map from API or fallback to hardcoded
+  const categoryInfoMap = useMemo(() => {
+    const map: Record<string, { name: string; color: string }> = {};
+    if (categories) {
+      for (const cat of categories) {
+        map[cat.id] = { name: cat.name, color: cat.color };
+      }
+    }
+    // Always include hardcoded as fallback
+    for (const id of LORA_CATEGORIES_ORDER) {
+      if (!map[id]) {
+        map[id] = {
+          name: LORA_CATEGORY_TO_NAME[id] ?? id,
+          color: LORA_CATEGORY_TO_COLOR[id] ?? 'base',
+        };
+      }
+    }
+    return map;
+  }, [categories]);
+
+  // Get ordered category IDs from API or fallback
+  const orderedCategoryIds = useMemo(() => {
+    if (categories) {
+      return categories.map((c) => c.id);
+    }
+    return LORA_CATEGORIES_ORDER as unknown as string[];
+  }, [categories]);
 
   // Get sorted LoRAs based on sort mode
   const sortedLoras = useMemo(() => {
@@ -160,18 +190,29 @@ export const LoRAList = memo(() => {
   // Render category groups when in category mode
   if (sortMode === 'category') {
     const groups = groupLoRAsByCategory(loras, modelConfigs);
+
+    // Get all category IDs that have LoRAs, maintaining order
+    const categoriesWithLoRAs = orderedCategoryIds.filter((catId) => (groups[catId]?.length ?? 0) > 0);
+
+    // Also check for any LoRAs in categories not in the ordered list
+    const extraCategories = Object.keys(groups).filter(
+      (catId) => (groups[catId]?.length ?? 0) > 0 && !orderedCategoryIds.includes(catId)
+    );
+
+    const allCategoriesToRender = [...categoriesWithLoRAs, ...extraCategories];
+
     return (
       <Flex flexDir="column" gap={3}>
-        {LORA_CATEGORIES_ORDER.map((categoryId) => {
+        {allCategoriesToRender.map((categoryId) => {
           const group = groups[categoryId];
           if (!group?.length) {
             return null;
           }
-          const color = LORA_CATEGORY_TO_COLOR[categoryId] ?? 'base';
+          const info = categoryInfoMap[categoryId] ?? { name: categoryId, color: 'base' };
           return (
-            <Box key={categoryId} borderLeftWidth={3} borderLeftColor={`${color}.500`} pl={2}>
-              <Text fontSize="xs" color={`${color}.300`} fontWeight="semibold" mb={1}>
-                {LORA_CATEGORY_TO_NAME[categoryId]}
+            <Box key={categoryId} borderLeftWidth={3} borderLeftColor={`${info.color}.500`} pl={2}>
+              <Text fontSize="xs" color={`${info.color}.300`} fontWeight="semibold" mb={1}>
+                {info.name}
               </Text>
               <Flex flexWrap="wrap" gap={2}>
                 {group.map(({ lora }) => (

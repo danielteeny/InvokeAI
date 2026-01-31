@@ -3,6 +3,7 @@ import { logger } from 'app/logging/logger';
 import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
 import ScrollableContent from 'common/components/OverlayScrollbars/ScrollableContent';
 import { buildUseDisclosure } from 'common/hooks/useBoolean';
+import { LoraCategoryManagerModal } from 'features/modelManagerV2/components/LoraCategoryManager';
 import { MODEL_CATEGORIES_AS_LIST } from 'features/modelManagerV2/models';
 import {
   clearModelSelection,
@@ -32,6 +33,7 @@ const log = logger('models');
 
 export const [useBulkDeleteModal] = buildUseDisclosure(false);
 export const [useBulkSetCategoryModal] = buildUseDisclosure(false);
+export const [useLoraCategoryManagerModal] = buildUseDisclosure(false);
 
 const ModelList = () => {
   const dispatch = useAppDispatch();
@@ -42,6 +44,7 @@ const ModelList = () => {
   const toast = useToast();
   const { isOpen: isDeleteOpen, close: closeDelete } = useBulkDeleteModal();
   const { isOpen: isCategoryOpen, close: closeCategory } = useBulkSetCategoryModal();
+  const { isOpen: isCategoryManagerOpen, close: closeCategoryManager } = useLoraCategoryManagerModal();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
 
@@ -254,6 +257,8 @@ const ModelList = () => {
         modelCount={selectedModelKeys.length}
         isUpdating={isUpdatingCategory}
       />
+
+      <LoraCategoryManagerModal isOpen={isCategoryManagerOpen} onClose={closeCategoryManager} />
     </>
   );
 };

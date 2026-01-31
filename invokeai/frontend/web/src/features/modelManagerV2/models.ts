@@ -252,17 +252,17 @@ export const SUPPORTS_NEGATIVE_PROMPT_BASE_MODELS: BaseModelType[] = [
 ];
 
 /**
- * Mapping of LoRA category ID to color scheme
+ * Mapping of LoRA category ID to color (hex values - optimized for dark UI readability)
  */
 export const LORA_CATEGORY_TO_COLOR: Record<string, string> = {
-  style: 'purple',
-  character: 'green',
-  concept: 'blue',
-  pose: 'orange',
-  clothing: 'pink',
-  background: 'teal',
-  quality: 'yellow',
-  uncategorized: 'base',
+  style: '#AB47BC',
+  character: '#81C784',
+  concept: '#42A5F5',
+  pose: '#FF7043',
+  clothing: '#F06292',
+  background: '#26A69A',
+  quality: '#FFEE58',
+  uncategorized: '#BDBDBD',
 };
 
 /**

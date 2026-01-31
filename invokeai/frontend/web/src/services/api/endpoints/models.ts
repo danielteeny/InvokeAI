@@ -79,14 +79,6 @@ type GetHuggingFaceModelsResponse =
 
 type GetByAttrsArg = operations['get_model_records_by_attrs']['parameters']['query'];
 
-// LoRA Category types
-type LoRACategoryInfo = {
-  id: string;
-  name: string;
-  color: string;
-};
-type GetLoRACategoriesResponse = LoRACategoryInfo[];
-
 const modelConfigsAdapter = createEntityAdapter<AnyModelConfig, string>({
   selectId: (entity) => entity.key,
   sortComparer: (a, b) => a.name.localeCompare(b.name),
@@ -359,10 +351,6 @@ export const modelsApi = api.injectEndpoints({
         }
       },
     }),
-    getLoRACategories: build.query<GetLoRACategoriesResponse, void>({
-      query: () => buildModelsUrl('lora-categories'),
-      providesTags: ['LoRACategories'],
-    }),
   }),
 });
 
@@ -387,7 +375,6 @@ export const {
   useResetHFTokenMutation,
   useEmptyModelCacheMutation,
   useReidentifyModelMutation,
-  useGetLoRACategoriesQuery,
 } = modelsApi;
 
 export const selectModelConfigsQuery = modelsApi.endpoints.getModelConfigs.select();

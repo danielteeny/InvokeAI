@@ -5,7 +5,7 @@ import { LORA_CATEGORY_TO_NAME } from 'features/modelManagerV2/models';
 import { useCallback, useMemo } from 'react';
 import type { Control, FieldValues, Path } from 'react-hook-form';
 import { useController } from 'react-hook-form';
-import { useGetLoRACategoriesQuery } from 'services/api/endpoints/models';
+import { useListLoraCategoriesQuery } from 'services/api/endpoints/loraCategories';
 
 // Generic type for form values that may include category
 // This allows the component to work until OpenAPI schema is regenerated
@@ -16,7 +16,7 @@ type Props<T extends FormWithCategory> = {
 };
 
 const CategorySelect = <T extends FormWithCategory>({ control }: Props<T>) => {
-  const { data: categories } = useGetLoRACategoriesQuery();
+  const { data: categories } = useListLoraCategoriesQuery();
   const { field } = useController({ control, name: 'category' as Path<T> });
 
   const options = useMemo<ComboboxOption[]>(() => {

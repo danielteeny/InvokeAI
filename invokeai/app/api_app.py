@@ -22,6 +22,7 @@ from invokeai.app.api.routers import (
     client_state,
     download_queue,
     images,
+    lora_categories,
     lora_presets,
     model_manager,
     model_relationships,
@@ -134,6 +135,7 @@ app.include_router(session_queue.session_queue_router, prefix="/api")
 app.include_router(workflows.workflows_router, prefix="/api")
 app.include_router(style_presets.style_presets_router, prefix="/api")
 app.include_router(lora_presets.lora_presets_router, prefix="/api")
+app.include_router(lora_categories.lora_categories_router, prefix="/api")
 app.include_router(client_state.client_state_router, prefix="/api")
 
 app.openapi = get_openapi_func(app)

@@ -10,12 +10,14 @@ import {
   FormControl,
   FormLabel,
   Select,
+  Spinner,
   Text,
 } from '@invoke-ai/ui-library';
 import { LORA_CATEGORIES_ORDER, LORA_CATEGORY_TO_NAME } from 'features/modelManagerV2/models';
 import type { ChangeEvent } from 'react';
-import { memo, useCallback, useRef, useState } from 'react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useListLoraCategoriesQuery } from 'services/api/endpoints/loraCategories';
 
 type BulkSetCategoryModalProps = {
   isOpen: boolean;
@@ -30,6 +32,19 @@ export const BulkSetCategoryModal = memo(
     const { t } = useTranslation();
     const cancelRef = useRef<HTMLButtonElement>(null);
     const [selectedCategory, setSelectedCategory] = useState<string>('uncategorized');
+    const { data: categories, isLoading: isCategoriesLoading } = useListLoraCategoriesQuery();
+
+    // Build category options from API or fallback to hardcoded
+    const categoryOptions = useMemo(() => {
+      if (categories) {
+        return [{ id: 'uncategorized', name: 'Uncategorized' }, ...categories.filter((c) => c.id !== 'uncategorized')];
+      }
+      // Fallback to hardcoded values
+      return LORA_CATEGORIES_ORDER.map((id) => ({
+        id,
+        name: LORA_CATEGORY_TO_NAME[id] ?? id,
+      }));
+    }, [categories]);
 
     const handleCategoryChange = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
       setSelectedCategory(e.target.value);
@@ -62,13 +77,19 @@ export const BulkSetCategoryModal = memo(
                 </Text>
                 <FormControl>
                   <FormLabel>{t('modelManager.category')}</FormLabel>
-                  <Select value={selectedCategory} onChange={handleCategoryChange}>
-                    {LORA_CATEGORIES_ORDER.map((categoryId) => (
-                      <option key={categoryId} value={categoryId}>
-                        {LORA_CATEGORY_TO_NAME[categoryId] ?? categoryId}
-                      </option>
-                    ))}
-                  </Select>
+                  {isCategoriesLoading ? (
+                    <Flex justifyContent="center" py={2}>
+                      <Spinner size="sm" />
+                    </Flex>
+                  ) : (
+                    <Select value={selectedCategory} onChange={handleCategoryChange}>
+                      {categoryOptions.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
                 </FormControl>
                 <Text variant="subtext" color="base.400">
                   {t('modelManager.setCategoryNote', {

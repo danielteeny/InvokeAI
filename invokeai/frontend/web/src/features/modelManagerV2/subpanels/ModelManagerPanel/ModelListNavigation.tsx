@@ -1,17 +1,23 @@
-import { Flex, IconButton, Input, InputGroup, InputRightElement } from '@invoke-ai/ui-library';
+import { Flex, IconButton, Input, InputGroup, InputRightElement, Tooltip } from '@invoke-ai/ui-library';
 import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
 import { selectSearchTerm, setSearchTerm } from 'features/modelManagerV2/store/modelManagerV2Slice';
 import { t } from 'i18next';
 import type { ChangeEventHandler } from 'react';
 import { memo, useCallback } from 'react';
-import { PiXBold } from 'react-icons/pi';
+import { PiFoldersBold, PiXBold } from 'react-icons/pi';
 
+import { useLoraCategoryManagerModal } from './ModelList';
 import { ModelListBulkActions } from './ModelListBulkActions';
 import { ModelTypeFilter } from './ModelTypeFilter';
 
 export const ModelListNavigation = memo(() => {
   const dispatch = useAppDispatch();
   const searchTerm = useAppSelector(selectSearchTerm);
+  const categoryManagerModal = useLoraCategoryManagerModal();
+
+  const handleOpenCategoryManager = useCallback(() => {
+    categoryManagerModal.open();
+  }, [categoryManagerModal]);
 
   const handleSearch: ChangeEventHandler<HTMLInputElement> = useCallback(
     (event) => {
@@ -52,6 +58,15 @@ export const ModelListNavigation = memo(() => {
         <Flex shrink={0}>
           <ModelTypeFilter />
         </Flex>
+        <Tooltip label={t('modelManager.manageCategories')}>
+          <IconButton
+            aria-label={t('modelManager.manageCategories')}
+            icon={<PiFoldersBold />}
+            onClick={handleOpenCategoryManager}
+            size="sm"
+            variant="ghost"
+          />
+        </Tooltip>
       </Flex>
       <ModelListBulkActions />
     </Flex>
