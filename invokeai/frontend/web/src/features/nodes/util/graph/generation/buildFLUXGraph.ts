@@ -12,7 +12,7 @@ import { isFlux2ReferenceImageConfig, isFluxKontextReferenceImageConfig } from '
 import { getGlobalReferenceImageWarnings } from 'features/controlLayers/store/validators';
 import { zImageField } from 'features/nodes/types/common';
 import { addFLUXFill } from 'features/nodes/util/graph/generation/addFLUXFill';
-import { addFLUXLoRAs } from 'features/nodes/util/graph/generation/addFLUXLoRAs';
+import { addFlux2LoRAs, addFLUXLoRAs } from 'features/nodes/util/graph/generation/addFLUXLoRAs';
 import { addFLUXReduxes } from 'features/nodes/util/graph/generation/addFLUXRedux';
 import { addImageToImage } from 'features/nodes/util/graph/generation/addImageToImage';
 import { addInpaint } from 'features/nodes/util/graph/generation/addInpaint';
@@ -348,6 +348,9 @@ export const buildFLUXGraph = async (arg: GraphBuilderArg): Promise<GraphBuilder
     } else {
       assert<Equals<typeof generationMode, never>>(false);
     }
+
+    // Add Flux 2 LoRAs (transformer only, no CLIP/T5)
+    addFlux2LoRAs(state, g, flux2Denoise, flux2ModelLoader);
   } else {
     // Standard FLUX path with all features
     const fluxDenoise = denoise as Invocation<'flux_denoise'>;
