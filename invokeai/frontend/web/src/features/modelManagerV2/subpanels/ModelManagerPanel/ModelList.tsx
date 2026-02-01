@@ -29,6 +29,7 @@ import { useListLoraCategoriesQuery } from 'services/api/endpoints/loraCategorie
 import {
   modelConfigsAdapterSelectors,
   useBulkDeleteModelsMutation,
+  useGetMissingModelsQuery,
   useGetModelConfigsQuery,
   useUpdateModelMutation,
 } from 'services/api/endpoints/models';
@@ -37,6 +38,7 @@ import type { AnyModelConfig, LoRAModelConfig } from 'services/api/types';
 import { BulkDeleteModelsModal } from './BulkDeleteModelsModal';
 import { BulkSetCategoryModal } from './BulkSetCategoryModal';
 import { FetchingModelsLoader } from './FetchingModelsLoader';
+import { MissingModelsProvider } from './MissingModelsContext';
 import ModelListItem from './ModelListItem';
 import { ModelListWrapper } from './ModelListWrapper';
 
@@ -65,7 +67,8 @@ const ModelList = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
 
-  const { data, isLoading } = useGetModelConfigsQuery();
+const { data: allModelsData, isLoading: isLoadingAll } = useGetModelConfigsQuery();
+  const { data: missingModelsData, isLoading: isLoadingMissing } = useGetMissingModelsQuery();
   const { data: loraCategories } = useListLoraCategoriesQuery();
   const [bulkDeleteModels] = useBulkDeleteModelsMutation();
   const [updateModel] = useUpdateModelMutation();
@@ -98,8 +101,27 @@ const ModelList = () => {
     return LORA_CATEGORIES_ORDER as unknown as string[];
   }, [loraCategories]);
 
+  const data = filteredModelType === 'missing' ? missingModelsData : allModelsData;
+  const isLoading = filteredModelType === 'missing' ? isLoadingMissing : isLoadingAll;
+
   const models = useMemo(() => {
     const modelConfigs = modelConfigsAdapterSelectors.selectAll(data ?? { ids: [], entities: {} });
+
+    // For missing models filter, show all models in a single category
+    if (filteredModelType === 'missing') {
+      const filtered = modelConfigs.filter(
+        (m) =>
+          m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          m.base.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          m.type.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      return {
+        total: filtered.length,
+        byCategory: [{ i18nKey: 'modelManager.missingFiles', configs: filtered }],
+        filteredConfigs: filtered,
+      };
+    }
+
     const baseFilteredModelConfigs = modelsFilter(
       modelConfigs,
       searchTerm,
@@ -313,7 +335,7 @@ const ModelList = () => {
   );
 
   return (
-    <>
+    <MissingModelsProvider>
       <Flex flexDirection="column" w="full" h="full">
         <ScrollableContent>
           <Flex flexDirection="column" w="full" h="full" gap={4}>
@@ -369,7 +391,7 @@ const ModelList = () => {
       />
 
       <LoraCategoryManagerModal isOpen={isCategoryManagerOpen} onClose={closeCategoryManager} />
-    </>
+    </MissingModelsProvider>
   );
 };
 
