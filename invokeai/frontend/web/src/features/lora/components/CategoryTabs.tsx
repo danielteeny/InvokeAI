@@ -41,6 +41,7 @@ const CategoryTag = memo(
         cursor="pointer"
         onClick={handleClick}
         flexShrink={0}
+        whiteSpace="nowrap"
         bg={isSelected ? categoryColor : hexToRgba(categoryColor, 0.2)}
         color={isSelected ? 'white' : categoryColor}
         borderColor={hexToRgba(categoryColor, 0.4)}
