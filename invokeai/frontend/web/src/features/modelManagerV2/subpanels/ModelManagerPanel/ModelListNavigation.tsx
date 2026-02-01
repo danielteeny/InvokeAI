@@ -3,6 +3,7 @@ import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
 import {
   selectFilteredModelType,
   selectSearchTerm,
+  selectSelectedBaseModel,
   setSearchTerm,
 } from 'features/modelManagerV2/store/modelManagerV2Slice';
 import { t } from 'i18next';
@@ -23,6 +24,7 @@ export const ModelListNavigation = memo(() => {
   const dispatch = useAppDispatch();
   const searchTerm = useAppSelector(selectSearchTerm);
   const filteredModelType = useAppSelector(selectFilteredModelType);
+  const selectedBaseModel = useAppSelector(selectSelectedBaseModel);
   const categoryManagerModal = useLoraCategoryManagerModal();
   const { data } = useGetModelConfigsQuery();
 
@@ -47,13 +49,20 @@ export const ModelListNavigation = memo(() => {
     return allConfigs;
   }, [data, filteredModelType]);
 
-  // Get LoRA configs for category tabs
+  // Get LoRA configs for category tabs (filtered by selected base model)
   const loraConfigs = useMemo(() => {
     if (!data) {
       return [] as LoRAModelConfig[];
     }
-    return modelConfigsAdapterSelectors.selectAll(data).filter((m) => m.type === 'lora') as LoRAModelConfig[];
-  }, [data]);
+    let configs = modelConfigsAdapterSelectors.selectAll(data).filter((m) => m.type === 'lora') as LoRAModelConfig[];
+
+    // Apply base model filter if active
+    if (selectedBaseModel) {
+      configs = configs.filter((m) => m.base === selectedBaseModel);
+    }
+
+    return configs;
+  }, [data, selectedBaseModel]);
 
   const handleOpenCategoryManager = useCallback(() => {
     categoryManagerModal.open();
