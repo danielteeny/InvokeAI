@@ -14,6 +14,7 @@ const tagTypes = [
   'AppVersion',
   'AppConfig',
   'Board',
+  'BoardAssignmentRule',
   'BoardImagesTotal',
   'BoardAssetsTotal',
   'HFTokenStatus',

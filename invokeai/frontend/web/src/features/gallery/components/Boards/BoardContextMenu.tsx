@@ -8,8 +8,17 @@ import { autoAddBoardIdChanged } from 'features/gallery/store/gallerySlice';
 import { toast } from 'features/toast/toast';
 import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PiArchiveBold, PiArchiveFill, PiDownloadBold, PiPlusBold, PiTrashSimpleBold } from 'react-icons/pi';
-import { useUpdateBoardMutation } from 'services/api/endpoints/boards';
+import {
+  PiArchiveBold,
+  PiArchiveFill,
+  PiCheckBold,
+  PiDownloadBold,
+  PiGearBold,
+  PiPlusBold,
+  PiTrashSimpleBold,
+} from 'react-icons/pi';
+import { useGetRulesForBoardQuery } from 'services/api/endpoints/boardAssignment';
+import { useMarkImagesAsSeenMutation, useUpdateBoardMutation } from 'services/api/endpoints/boards';
 import { useBulkDownloadImagesMutation } from 'services/api/endpoints/images';
 import { useBoardName } from 'services/api/hooks/useBoardName';
 import type { BoardDTO } from 'services/api/types';
@@ -29,6 +38,10 @@ const BoardContextMenu = ({ board, children }: Props) => {
   );
 
   const [updateBoard] = useUpdateBoardMutation();
+  const [markImagesAsSeen] = useMarkImagesAsSeenMutation();
+  const { data: rules } = useGetRulesForBoardQuery(board.board_id);
+  const rulesCount = rules?.length ?? 0;
+  const unseenCount = board.unseen_count ?? 0;
 
   const isSelectedForAutoAdd = useAppSelector(selectIsSelectedForAutoAdd);
   const boardName = useBoardName(board.board_id);
@@ -68,6 +81,21 @@ const BoardContextMenu = ({ board, children }: Props) => {
     $boardToDelete.set(board);
   }, [board]);
 
+  const handleMarkAsSeen = useCallback(async () => {
+    try {
+      await markImagesAsSeen({ board_id: board.board_id }).unwrap();
+      toast({
+        status: 'success',
+        title: t('boards.markedAsSeen'),
+      });
+    } catch {
+      toast({
+        status: 'error',
+        title: t('boards.unableToMarkAsSeen'),
+      });
+    }
+  }, [board.board_id, markImagesAsSeen, t]);
+
   const renderMenuFunc = useCallback(
     () => (
       <MenuList visibility="visible">
@@ -81,6 +109,16 @@ const BoardContextMenu = ({ board, children }: Props) => {
           <MenuItem icon={<PiDownloadBold />} onClickCapture={handleBulkDownload}>
             {t('boards.downloadBoard')}
           </MenuItem>
+
+          <MenuItem icon={<PiGearBold />}>
+            {t('boards.manageAutoAssignmentRules')} {rulesCount > 0 && `(${rulesCount})`}
+          </MenuItem>
+
+          {unseenCount > 0 && (
+            <MenuItem icon={<PiCheckBold />} onClick={handleMarkAsSeen}>
+              {t('boards.markAllAsSeen')} ({unseenCount})
+            </MenuItem>
+          )}
 
           {board.archived && (
             <MenuItem icon={<PiArchiveBold />} onClick={handleUnarchive}>
@@ -107,6 +145,9 @@ const BoardContextMenu = ({ board, children }: Props) => {
       handleSetAutoAdd,
       t,
       handleBulkDownload,
+      rulesCount,
+      unseenCount,
+      handleMarkAsSeen,
       board.archived,
       handleUnarchive,
       handleArchive,

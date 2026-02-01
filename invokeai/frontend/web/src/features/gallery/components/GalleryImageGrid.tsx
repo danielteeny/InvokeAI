@@ -6,6 +6,7 @@ import { useRangeBasedImageFetching } from 'features/gallery/hooks/useRangeBased
 import type { selectGetImageNamesQueryArgs } from 'features/gallery/store/gallerySelectors';
 import {
   selectGalleryImageMinimumWidth,
+  selectGalleryMode,
   selectImageToCompare,
   selectLastSelectedItem,
   selectSelection,
@@ -31,6 +32,7 @@ import { getItemIndex } from './getItemIndex';
 import { getItemsPerRow } from './getItemsPerRow';
 import { GalleryImage, GalleryImagePlaceholder } from './ImageGrid/GalleryImage';
 import { GallerySelectionCountTag } from './ImageGrid/GallerySelectionCountTag';
+import { PaginatedGrid } from './PaginatedGrid';
 import { scrollIntoView } from './scrollIntoView';
 import { useGalleryImageNames } from './use-gallery-image-names';
 import { useScrollableGallery } from './useScrollableGallery';
@@ -310,7 +312,10 @@ const useStarImageHotkey = () => {
   });
 };
 
-export const GalleryImageGrid = memo(() => {
+/**
+ * Infinite scroll grid component using react-virtuoso
+ */
+const InfiniteScrollGrid = memo(() => {
   const virtuosoRef = useRef<VirtuosoGridHandle>(null);
   const rangeRef = useRef<ListRange>({ startIndex: 0, endIndex: 0 });
   const rootRef = useRef<HTMLDivElement>(null);
@@ -379,6 +384,21 @@ export const GalleryImageGrid = memo(() => {
       <GallerySelectionCountTag />
     </Box>
   );
+});
+InfiniteScrollGrid.displayName = 'InfiniteScrollGrid';
+
+/**
+ * Main gallery grid component that conditionally renders either infinite scroll or paginated grid
+ * based on user preference. Pagination mode uses less memory, suitable for low-RAM devices.
+ */
+export const GalleryImageGrid = memo(() => {
+  const galleryMode = useAppSelector(selectGalleryMode);
+
+  if (galleryMode === 'pagination') {
+    return <PaginatedGrid />;
+  }
+
+  return <InfiniteScrollGrid />;
 });
 
 GalleryImageGrid.displayName = 'GalleryImageGrid';

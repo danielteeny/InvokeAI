@@ -26,6 +26,13 @@ class BoardRecord(BaseModelExcludeNull):
     """The name of the cover image of the board."""
     archived: bool = Field(description="Whether or not the board is archived.")
     """Whether or not the board is archived."""
+    # Hierarchy fields for nested folder support
+    parent_board_id: Optional[str] = Field(default=None, description="The ID of the parent board (null for root-level).")
+    """The ID of the parent board (null for root-level boards)."""
+    position: int = Field(default=0, description="Position within parent for ordering.")
+    """Position within parent for ordering."""
+    path: str = Field(default="", description="Materialized path for hierarchy queries.")
+    """Materialized path for hierarchy queries (e.g., '/root/child/grandchild')."""
 
 
 def deserialize_board_record(board_dict: dict) -> BoardRecord:
@@ -40,6 +47,10 @@ def deserialize_board_record(board_dict: dict) -> BoardRecord:
     updated_at = board_dict.get("updated_at", get_iso_timestamp())
     deleted_at = board_dict.get("deleted_at", get_iso_timestamp())
     archived = board_dict.get("archived", False)
+    # Hierarchy fields
+    parent_board_id = board_dict.get("parent_board_id", None)
+    position = board_dict.get("position", 0)
+    path = board_dict.get("path", "")
 
     return BoardRecord(
         board_id=board_id,
@@ -49,6 +60,9 @@ def deserialize_board_record(board_dict: dict) -> BoardRecord:
         updated_at=updated_at,
         deleted_at=deleted_at,
         archived=archived,
+        parent_board_id=parent_board_id,
+        position=position,
+        path=path,
     )
 
 
@@ -56,6 +70,13 @@ class BoardChanges(BaseModel, extra="forbid"):
     board_name: Optional[str] = Field(default=None, description="The board's new name.", max_length=300)
     cover_image_name: Optional[str] = Field(default=None, description="The name of the board's new cover image.")
     archived: Optional[bool] = Field(default=None, description="Whether or not the board is archived")
+
+
+class BoardMoveRequest(BaseModel, extra="forbid"):
+    """Request to move a board to a new parent."""
+
+    new_parent_id: Optional[str] = Field(default=None, description="The ID of the new parent board (null for root level).")
+    position: Optional[int] = Field(default=None, description="The position within the new parent (null to append at end).")
 
 
 class BoardRecordOrderBy(str, Enum, metaclass=MetaEnum):

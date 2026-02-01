@@ -26,9 +26,9 @@ class SqliteBoardImageRecordStorage(BoardImageRecordStorageBase):
         with self._db.transaction() as cursor:
             cursor.execute(
                 """--sql
-                INSERT INTO board_images (board_id, image_name)
-                VALUES (?, ?)
-                ON CONFLICT (image_name) DO UPDATE SET board_id = ?;
+                INSERT INTO board_images (board_id, image_name, is_seen, added_at)
+                VALUES (?, ?, 0, CURRENT_TIMESTAMP)
+                ON CONFLICT (image_name) DO UPDATE SET board_id = ?, is_seen = 0, added_at = CURRENT_TIMESTAMP;
                 """,
                 (board_id, image_name, board_id),
             )
@@ -188,3 +188,54 @@ class SqliteBoardImageRecordStorage(BoardImageRecordStorageBase):
             )
             count = cast(int, cursor.fetchone()[0])
         return count
+
+    # Unseen notifications methods
+
+    def get_unseen_count_for_board(self, board_id: str) -> int:
+        """Gets the number of unseen images for a board."""
+        with self._db.transaction() as cursor:
+            cursor.execute(
+                """--sql
+                SELECT COUNT(*)
+                FROM board_images
+                INNER JOIN images ON board_images.image_name = images.image_name
+                WHERE board_images.board_id = ?
+                AND board_images.is_seen = 0
+                AND images.is_intermediate = FALSE;
+                """,
+                (board_id,),
+            )
+            count = cast(int, cursor.fetchone()[0])
+        return count
+
+    def mark_images_as_seen(
+        self,
+        board_id: str,
+        image_names: list[str] | None = None,
+    ) -> None:
+        """Marks images as seen. If image_names is None, marks all images in the board as seen."""
+        with self._db.transaction() as cursor:
+            if image_names is None:
+                # Mark all images in the board as seen
+                cursor.execute(
+                    """--sql
+                    UPDATE board_images
+                    SET is_seen = 1
+                    WHERE board_id = ?;
+                    """,
+                    (board_id,),
+                )
+            else:
+                # Mark specific images as seen
+                if len(image_names) == 0:
+                    return
+                placeholders = ",".join("?" * len(image_names))
+                cursor.execute(
+                    f"""--sql
+                    UPDATE board_images
+                    SET is_seen = 1
+                    WHERE board_id = ?
+                    AND image_name IN ({placeholders});
+                    """,
+                    (board_id, *image_names),
+                )

@@ -17,6 +17,7 @@ from invokeai.app.api.dependencies import ApiDependencies
 from invokeai.app.api.no_cache_staticfiles import NoCacheStaticFiles
 from invokeai.app.api.routers import (
     app_info,
+    board_assignment,
     board_images,
     boards,
     client_state,
@@ -136,6 +137,7 @@ app.include_router(workflows.workflows_router, prefix="/api")
 app.include_router(style_presets.style_presets_router, prefix="/api")
 app.include_router(lora_presets.lora_presets_router, prefix="/api")
 app.include_router(lora_categories.lora_categories_router, prefix="/api")
+app.include_router(board_assignment.board_assignment_router, prefix="/api")
 app.include_router(client_state.client_state_router, prefix="/api")
 
 app.openapi = get_openapi_func(app)

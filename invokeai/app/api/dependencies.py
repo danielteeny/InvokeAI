@@ -5,6 +5,7 @@ from logging import Logger
 
 import torch
 
+from invokeai.app.services.board_assignment.board_assignment_default import BoardAssignmentService
 from invokeai.app.services.board_image_records.board_image_records_sqlite import SqliteBoardImageRecordStorage
 from invokeai.app.services.board_images.board_images_default import BoardImagesService
 from invokeai.app.services.board_records.board_records_sqlite import SqliteBoardRecordStorage
@@ -106,6 +107,7 @@ class ApiDependencies:
         configuration = config
         logger = logger
 
+        board_assignment = BoardAssignmentService(db=db)
         board_image_records = SqliteBoardImageRecordStorage(db=db)
         board_images = BoardImagesService()
         board_records = SqliteBoardRecordStorage(db=db)
@@ -161,6 +163,7 @@ class ApiDependencies:
         client_state_persistence = ClientStatePersistenceSqlite(db=db)
 
         services = InvocationServices(
+            board_assignment=board_assignment,
             board_image_records=board_image_records,
             board_images=board_images,
             board_records=board_records,

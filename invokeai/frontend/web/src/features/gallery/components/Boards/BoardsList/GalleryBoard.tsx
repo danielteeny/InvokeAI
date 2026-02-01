@@ -1,5 +1,5 @@
 import type { SystemStyleObject } from '@invoke-ai/ui-library';
-import { Box, Flex, Icon, Image, Text, Tooltip } from '@invoke-ai/ui-library';
+import { Badge, Box, Flex, Icon, Image, Text, Tooltip } from '@invoke-ai/ui-library';
 import { skipToken } from '@reduxjs/toolkit/query';
 import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
 import type { AddImageToBoardDndTargetData } from 'features/dnd/dnd';
@@ -90,6 +90,11 @@ const GalleryBoard = ({ board, isSelected }: GalleryBoardProps) => {
               </Flex>
               {autoAddBoardId === board.board_id && <AutoAddBadge />}
               {board.archived && <Icon as={PiArchiveBold} fill="base.300" />}
+              {(board.unseen_count ?? 0) > 0 && (
+                <Badge colorScheme="invokeYellow" variant="solid" fontSize="xs" px={1.5} minW={5} textAlign="center">
+                  +{board.unseen_count}
+                </Badge>
+              )}
               <Flex justifyContent="flex-end">
                 <Text variant="subtext">
                   {board.image_count} | {board.asset_count}

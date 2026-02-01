@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 
     import torch
 
+    from invokeai.app.services.board_assignment.board_assignment_base import BoardAssignmentServiceBase
     from invokeai.app.services.board_image_records.board_image_records_base import BoardImageRecordStorageBase
     from invokeai.app.services.board_images.board_images_base import BoardImagesServiceABC
     from invokeai.app.services.board_records.board_records_base import BoardRecordStorageBase
@@ -48,6 +49,7 @@ class InvocationServices:
 
     def __init__(
         self,
+        board_assignment: "BoardAssignmentServiceBase",
         board_images: "BoardImagesServiceABC",
         board_image_records: "BoardImageRecordStorageBase",
         boards: "BoardServiceABC",
@@ -80,6 +82,7 @@ class InvocationServices:
         lora_preset_records: "LoRAPresetRecordsStorageBase",
         lora_category_records: "LoraCategoryRecordStorageBase",
     ):
+        self.board_assignment = board_assignment
         self.board_images = board_images
         self.board_image_records = board_image_records
         self.boards = boards

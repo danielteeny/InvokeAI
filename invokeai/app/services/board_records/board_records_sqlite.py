@@ -1,5 +1,5 @@
 import sqlite3
-from typing import Union, cast
+from typing import Optional, Union, cast
 
 from invokeai.app.services.board_records.board_records_base import BoardRecordStorageBase
 from invokeai.app.services.board_records.board_records_common import (
@@ -15,6 +15,13 @@ from invokeai.app.services.shared.pagination import OffsetPaginatedResults
 from invokeai.app.services.shared.sqlite.sqlite_common import SQLiteDirection
 from invokeai.app.services.shared.sqlite.sqlite_database import SqliteDatabase
 from invokeai.app.util.misc import uuid_string
+
+
+class BoardRecordCircularReferenceException(Exception):
+    """Raised when moving a board would create a circular reference."""
+
+    def __init__(self, message="Cannot move a board to be a descendant of itself"):
+        super().__init__(message)
 
 
 class SqliteBoardRecordStorage(BoardRecordStorageBase):
@@ -201,3 +208,153 @@ class SqliteBoardRecordStorage(BoardRecordStorageBase):
         boards = [deserialize_board_record(dict(r)) for r in result]
 
         return boards
+
+    # Hierarchy methods for nested folder support
+
+    def get_children(self, board_id: Optional[str]) -> list[BoardRecord]:
+        """Gets direct children of a board. Pass None to get root-level boards."""
+        with self._db.transaction() as cursor:
+            if board_id is None:
+                # Get root-level boards (no parent)
+                cursor.execute(
+                    """--sql
+                    SELECT *
+                    FROM boards
+                    WHERE parent_board_id IS NULL
+                    ORDER BY position, created_at;
+                    """
+                )
+            else:
+                cursor.execute(
+                    """--sql
+                    SELECT *
+                    FROM boards
+                    WHERE parent_board_id = ?
+                    ORDER BY position, created_at;
+                    """,
+                    (board_id,),
+                )
+
+            result = cast(list[sqlite3.Row], cursor.fetchall())
+        return [deserialize_board_record(dict(r)) for r in result]
+
+    def get_descendants(self, board_id: str) -> list[BoardRecord]:
+        """Gets all descendants of a board (children, grandchildren, etc.)."""
+        # First get the board's path
+        board = self.get(board_id)
+
+        with self._db.transaction() as cursor:
+            # Find all boards whose path starts with this board's path + board_id
+            # The path format is: /parent1/parent2/...
+            # So descendants have paths starting with current_path + / + board_id
+            descendant_path_prefix = f"{board.path}/{board_id}" if board.path else f"/{board_id}"
+
+            cursor.execute(
+                """--sql
+                SELECT *
+                FROM boards
+                WHERE path LIKE ? || '%'
+                ORDER BY path, position;
+                """,
+                (descendant_path_prefix,),
+            )
+
+            result = cast(list[sqlite3.Row], cursor.fetchall())
+        return [deserialize_board_record(dict(r)) for r in result]
+
+    def get_ancestors(self, board_id: str) -> list[BoardRecord]:
+        """Gets all ancestors of a board (parent, grandparent, etc.) in order from root to immediate parent."""
+        board = self.get(board_id)
+
+        if not board.path:
+            return []
+
+        # Parse the path to get ancestor IDs
+        # Path format: /ancestor1/ancestor2/...
+        ancestor_ids = [aid for aid in board.path.split("/") if aid]
+
+        if not ancestor_ids:
+            return []
+
+        ancestors = []
+        for ancestor_id in ancestor_ids:
+            try:
+                ancestor = self.get(ancestor_id)
+                ancestors.append(ancestor)
+            except BoardRecordNotFoundException:
+                # Ancestor was deleted, skip it
+                pass
+
+        return ancestors
+
+    def move_board(self, board_id: str, new_parent_id: Optional[str], position: Optional[int] = None) -> BoardRecord:
+        """Moves a board to a new parent with optional position. Pass None for new_parent_id to move to root level."""
+        board = self.get(board_id)
+
+        # Validate that new_parent_id is not the board itself or a descendant
+        if new_parent_id is not None:
+            if new_parent_id == board_id:
+                raise BoardRecordCircularReferenceException("Cannot move a board to be its own child")
+
+            # Check if new_parent_id is a descendant of board_id
+            descendants = self.get_descendants(board_id)
+            descendant_ids = {d.board_id for d in descendants}
+            if new_parent_id in descendant_ids:
+                raise BoardRecordCircularReferenceException()
+
+        # Calculate new path
+        if new_parent_id is None:
+            new_path = ""
+        else:
+            parent = self.get(new_parent_id)
+            new_path = f"{parent.path}/{new_parent_id}" if parent.path else f"/{new_parent_id}"
+
+        # Get siblings to determine position if not specified
+        with self._db.transaction() as cursor:
+            if position is None:
+                # Append at the end
+                if new_parent_id is None:
+                    cursor.execute(
+                        """--sql
+                        SELECT COALESCE(MAX(position), -1) + 1 as next_pos
+                        FROM boards
+                        WHERE parent_board_id IS NULL;
+                        """
+                    )
+                else:
+                    cursor.execute(
+                        """--sql
+                        SELECT COALESCE(MAX(position), -1) + 1 as next_pos
+                        FROM boards
+                        WHERE parent_board_id = ?;
+                        """,
+                        (new_parent_id,),
+                    )
+                position = cast(int, cursor.fetchone()[0])
+
+            # Update the board's parent, position, and path
+            cursor.execute(
+                """--sql
+                UPDATE boards
+                SET parent_board_id = ?, position = ?, path = ?
+                WHERE board_id = ?;
+                """,
+                (new_parent_id, position, new_path, board_id),
+            )
+
+            # Update paths of all descendants
+            old_path = board.path
+            old_descendant_prefix = f"{old_path}/{board_id}" if old_path else f"/{board_id}"
+            new_descendant_prefix = f"{new_path}/{board_id}"
+
+            # Replace the old path prefix with the new one for all descendants
+            cursor.execute(
+                """--sql
+                UPDATE boards
+                SET path = ? || SUBSTR(path, LENGTH(?) + 1)
+                WHERE path LIKE ? || '%';
+                """,
+                (new_descendant_prefix, old_descendant_prefix, old_descendant_prefix),
+            )
+
+        return self.get(board_id)

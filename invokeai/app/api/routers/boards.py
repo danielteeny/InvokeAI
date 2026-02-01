@@ -5,7 +5,8 @@ from fastapi.routing import APIRouter
 from pydantic import BaseModel, Field
 
 from invokeai.app.api.dependencies import ApiDependencies
-from invokeai.app.services.board_records.board_records_common import BoardChanges, BoardRecordOrderBy
+from invokeai.app.services.board_records.board_records_common import BoardChanges, BoardMoveRequest, BoardRecordOrderBy
+from invokeai.app.services.board_records.board_records_sqlite import BoardRecordCircularReferenceException
 from invokeai.app.services.boards.boards_common import BoardDTO
 from invokeai.app.services.image_records.image_records_common import ImageCategory
 from invokeai.app.services.shared.pagination import OffsetPaginatedResults
@@ -157,3 +158,129 @@ async def list_all_board_image_names(
         is_intermediate,
     )
     return image_names
+
+
+# Hierarchy endpoints for nested folder support
+
+
+@boards_router.get(
+    "/{board_id}/children",
+    operation_id="get_board_children",
+    response_model=list[BoardDTO],
+)
+async def get_board_children(
+    board_id: str = Path(description="The id of the board to get children for, or 'root' for root-level boards"),
+) -> list[BoardDTO]:
+    """Gets direct children of a board. Pass 'root' to get root-level boards."""
+    try:
+        parent_id = None if board_id == "root" else board_id
+        children = ApiDependencies.invoker.services.boards.get_children(parent_id)
+        return children
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to get board children")
+
+
+@boards_router.get(
+    "/{board_id}/descendants",
+    operation_id="get_board_descendants",
+    response_model=list[BoardDTO],
+)
+async def get_board_descendants(
+    board_id: str = Path(description="The id of the board to get descendants for"),
+) -> list[BoardDTO]:
+    """Gets all descendants of a board (children, grandchildren, etc.)."""
+    try:
+        descendants = ApiDependencies.invoker.services.boards.get_descendants(board_id)
+        return descendants
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to get board descendants")
+
+
+@boards_router.get(
+    "/{board_id}/ancestors",
+    operation_id="get_board_ancestors",
+    response_model=list[BoardDTO],
+)
+async def get_board_ancestors(
+    board_id: str = Path(description="The id of the board to get ancestors for"),
+) -> list[BoardDTO]:
+    """Gets all ancestors of a board (parent, grandparent, etc.) in order from root to immediate parent."""
+    try:
+        ancestors = ApiDependencies.invoker.services.boards.get_ancestors(board_id)
+        return ancestors
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to get board ancestors")
+
+
+@boards_router.patch(
+    "/{board_id}/move",
+    operation_id="move_board",
+    responses={
+        200: {"description": "The board was moved successfully"},
+        400: {"description": "Cannot move a board to be a descendant of itself"},
+    },
+    response_model=BoardDTO,
+)
+async def move_board(
+    board_id: str = Path(description="The id of the board to move"),
+    move_request: BoardMoveRequest = Body(description="The move request"),
+) -> BoardDTO:
+    """Moves a board to a new parent with optional position. Pass null for new_parent_id to move to root level."""
+    try:
+        result = ApiDependencies.invoker.services.boards.move_board(
+            board_id=board_id,
+            new_parent_id=move_request.new_parent_id,
+            position=move_request.position,
+        )
+        return result
+    except BoardRecordCircularReferenceException as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to move board")
+
+
+# Unseen notifications endpoints
+
+
+class MarkSeenRequest(BaseModel):
+    image_names: Optional[list[str]] = Field(
+        default=None, description="The names of images to mark as seen. If None, marks all images in the board as seen."
+    )
+
+
+@boards_router.post(
+    "/{board_id}/mark_seen",
+    operation_id="mark_images_as_seen",
+    responses={
+        200: {"description": "The images were marked as seen successfully"},
+    },
+    status_code=200,
+)
+async def mark_images_as_seen(
+    board_id: str = Path(description="The id of the board"),
+    mark_seen_request: Optional[MarkSeenRequest] = Body(default=None, description="The mark seen request"),
+) -> None:
+    """Marks images in a board as seen. If image_names is None or not provided, marks all images as seen."""
+    try:
+        image_names = mark_seen_request.image_names if mark_seen_request else None
+        ApiDependencies.invoker.services.board_image_records.mark_images_as_seen(
+            board_id=board_id, image_names=image_names
+        )
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to mark images as seen")
+
+
+@boards_router.get(
+    "/{board_id}/unseen_count",
+    operation_id="get_unseen_count",
+    response_model=int,
+)
+async def get_unseen_count(
+    board_id: str = Path(description="The id of the board"),
+) -> int:
+    """Gets the number of unseen images in a board."""
+    try:
+        count = ApiDependencies.invoker.services.board_image_records.get_unseen_count_for_board(board_id=board_id)
+        return count
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to get unseen count")

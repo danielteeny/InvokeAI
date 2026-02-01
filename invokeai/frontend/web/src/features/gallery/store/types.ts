@@ -15,6 +15,12 @@ export type OrderDir = z.infer<typeof zOrderDir>;
 const zBoardRecordOrderBy = z.enum(['created_at', 'board_name']);
 export type BoardRecordOrderBy = z.infer<typeof zBoardRecordOrderBy>;
 
+// Gallery mode for performance optimization
+const zGalleryMode = z.enum(['infinite-scroll', 'pagination']);
+export type GalleryMode = z.infer<typeof zGalleryMode>;
+const zPaginationPageSize = z.union([z.literal('auto'), z.literal(20), z.literal(50), z.literal(100)]);
+export type PaginationPageSize = z.infer<typeof zPaginationPageSize>;
+
 export const IMAGE_CATEGORIES: ImageCategory[] = ['general'];
 export const ASSETS_CATEGORIES: ImageCategory[] = ['control', 'mask', 'user', 'other'];
 
@@ -37,6 +43,12 @@ export const zGalleryState = z.object({
   shouldShowArchivedBoards: z.boolean(),
   boardsListOrderBy: zBoardRecordOrderBy,
   boardsListOrderDir: zOrderDir,
+  // Performance mode settings
+  galleryMode: zGalleryMode,
+  paginationPageSize: zPaginationPageSize,
+  currentPage: z.number(),
+  // Folder hierarchy settings
+  recursiveFolderView: z.boolean(), // true = show all descendants (Lightroom-style), false = show only direct contents (Finder-style)
 });
 
 export type GalleryState = z.infer<typeof zGalleryState>;

@@ -73,8 +73,21 @@ const _zImageDTO = z.object({
 export type ImageDTO = z.infer<typeof _zImageDTO>;
 assert<Equals<ImageDTO, S['ImageDTO']>>();
 
-export type BoardDTO = S['BoardDTO'];
+// Extend BoardDTO with new fields for hierarchy and unseen notifications
+// These fields are added via migrations and may not be present in older schema
+export type BoardDTO = S['BoardDTO'] & {
+  parent_board_id?: string | null;
+  position?: number;
+  path?: string;
+  unseen_count?: number;
+};
 export type OffsetPaginatedResults_ImageDTO_ = S['OffsetPaginatedResults_ImageDTO_'];
+
+// Board hierarchy types
+export type BoardMoveRequest = {
+  new_parent_id: string | null;
+  position?: number | null;
+};
 
 // Model Configs
 export type AnyModelConfig = S['AnyModelConfig'];

@@ -57,3 +57,22 @@ class BoardImageRecordStorageBase(ABC):
     ) -> int:
         """Gets the number of assets for a board."""
         pass
+
+    # Unseen notifications methods
+
+    @abstractmethod
+    def get_unseen_count_for_board(
+        self,
+        board_id: str,
+    ) -> int:
+        """Gets the number of unseen images for a board."""
+        pass
+
+    @abstractmethod
+    def mark_images_as_seen(
+        self,
+        board_id: str,
+        image_names: list[str] | None = None,
+    ) -> None:
+        """Marks images as seen. If image_names is None, marks all images in the board as seen."""
+        pass

@@ -71,3 +71,11 @@ export const selectAlwaysShouldImageSizeBadge = createSelector(
   selectGallerySlice,
   (gallery) => gallery.alwaysShowImageSizeBadge
 );
+
+// Performance mode selectors
+export const selectGalleryMode = createSelector(selectGallerySlice, (gallery) => gallery.galleryMode);
+export const selectPaginationPageSize = createSelector(selectGallerySlice, (gallery) => gallery.paginationPageSize);
+export const selectCurrentPage = createSelector(selectGallerySlice, (gallery) => gallery.currentPage);
+
+// Folder hierarchy selectors
+export const selectRecursiveFolderView = createSelector(selectGallerySlice, (gallery) => gallery.recursiveFolderView);

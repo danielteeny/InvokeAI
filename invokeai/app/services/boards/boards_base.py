@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from invokeai.app.services.board_records.board_records_common import BoardChanges, BoardRecordOrderBy
 from invokeai.app.services.boards.boards_common import BoardDTO
@@ -59,4 +60,26 @@ class BoardServiceABC(ABC):
         self, order_by: BoardRecordOrderBy, direction: SQLiteDirection, include_archived: bool = False
     ) -> list[BoardDTO]:
         """Gets all boards."""
+        pass
+
+    # Hierarchy methods for nested folder support
+
+    @abstractmethod
+    def get_children(self, parent_id: Optional[str]) -> list[BoardDTO]:
+        """Gets direct children of a board. Pass None to get root-level boards."""
+        pass
+
+    @abstractmethod
+    def get_descendants(self, board_id: str) -> list[BoardDTO]:
+        """Gets all descendants of a board (children, grandchildren, etc.)."""
+        pass
+
+    @abstractmethod
+    def get_ancestors(self, board_id: str) -> list[BoardDTO]:
+        """Gets all ancestors of a board (parent, grandparent, etc.) in order from root to immediate parent."""
+        pass
+
+    @abstractmethod
+    def move_board(self, board_id: str, new_parent_id: Optional[str], position: Optional[int] = None) -> BoardDTO:
+        """Moves a board to a new parent with optional position. Pass None for new_parent_id to move to root level."""
         pass

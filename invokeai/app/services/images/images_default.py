@@ -1,4 +1,5 @@
-from typing import Optional
+import json
+from typing import Any, Optional
 
 from PIL.Image import Image as PILImageType
 
@@ -33,6 +34,20 @@ class ImageService(ImageServiceABC):
     def start(self, invoker: Invoker) -> None:
         self.__invoker = invoker
 
+    def _parse_metadata_for_assignment(self, metadata: Optional[str], width: int, height: int) -> Optional[dict[str, Any]]:
+        """Parse metadata JSON and add image dimensions for auto-assignment evaluation."""
+        if metadata is None:
+            return None
+
+        try:
+            parsed = json.loads(metadata)
+            # Add dimensions to metadata for dimension-based rules
+            parsed["width"] = width
+            parsed["height"] = height
+            return parsed
+        except (json.JSONDecodeError, TypeError):
+            return None
+
     def create(
         self,
         image: PILImageType,
@@ -55,6 +70,20 @@ class ImageService(ImageServiceABC):
         image_name = self.__invoker.services.names.create_image_name()
 
         (width, height) = image.size
+
+        # Auto-assignment: If no board specified, try to auto-assign based on metadata
+        if board_id is None and metadata is not None and not is_intermediate:
+            try:
+                parsed_metadata = self._parse_metadata_for_assignment(metadata, width, height)
+                if parsed_metadata:
+                    eval_result = self.__invoker.services.board_assignment.evaluate(parsed_metadata)
+                    if eval_result.matched_board_id:
+                        board_id = eval_result.matched_board_id
+                        self.__invoker.services.logger.debug(
+                            f"Auto-assigning image to board '{eval_result.matched_rule_name}' ({board_id})"
+                        )
+            except Exception as e:
+                self.__invoker.services.logger.warning(f"Error during auto-assignment evaluation: {str(e)}")
 
         try:
             # TODO: Consider using a transaction here to ensure consistency between storage and database

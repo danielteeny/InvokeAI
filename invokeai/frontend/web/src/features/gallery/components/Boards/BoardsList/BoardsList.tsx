@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { useListAllBoardsQuery } from 'services/api/endpoints/boards';
 
 import AddBoardButton from './AddBoardButton';
-import GalleryBoard from './GalleryBoard';
+import { BoardTree } from './BoardTree';
 import NoBoardBoard from './NoBoardBoard';
 
 export const BoardsList = memo(() => {
@@ -23,33 +23,9 @@ export const BoardsList = memo(() => {
   const { data: boards } = useListAllBoardsQuery(queryArgs);
   const { isOpen } = useDisclosure({ defaultIsOpen: true });
 
-  const filteredBoards = useMemo(() => {
-    if (!boards) {
-      return EMPTY_ARRAY;
-    }
+  const boardsList = useMemo(() => boards ?? EMPTY_ARRAY, [boards]);
 
-    if (boardSearchText.length) {
-      return boards.filter((board) => board.board_name.toLowerCase().includes(boardSearchText.toLowerCase()));
-    }
-
-    return boards;
-  }, [boardSearchText, boards]);
-
-  const boardElements = useMemo(() => {
-    const elements = [];
-
-    if (!boardSearchText.length) {
-      elements.push(<NoBoardBoard key="none" isSelected={selectedBoardId === 'none'} />);
-    }
-
-    filteredBoards.forEach((board) => {
-      elements.push(
-        <GalleryBoard board={board} isSelected={selectedBoardId === board.board_id} key={board.board_id} />
-      );
-    });
-
-    return elements;
-  }, [boardSearchText.length, filteredBoards, selectedBoardId]);
+  const hasBoards = boardsList.length > 0 || boardSearchText.length === 0;
 
   return (
     <Flex direction="column">
@@ -71,8 +47,12 @@ export const BoardsList = memo(() => {
       </Flex>
       <Collapse in={isOpen} style={fixTooltipCloseOnScrollStyles}>
         <Flex direction="column" gap={1}>
-          {boardElements.length ? (
-            boardElements
+          {/* Always show "Uncategorized" board unless searching */}
+          {!boardSearchText.length && <NoBoardBoard key="none" isSelected={selectedBoardId === 'none'} />}
+
+          {/* Render boards as a tree structure */}
+          {hasBoards ? (
+            <BoardTree boards={boardsList} searchText={boardSearchText} />
           ) : (
             <Text variant="subtext" textAlign="center">
               {t('boards.noBoards', { boardType: boardSearchText.length ? 'Matching' : '' })}

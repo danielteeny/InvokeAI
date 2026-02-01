@@ -2,6 +2,7 @@ import { ASSETS_CATEGORIES, IMAGE_CATEGORIES } from 'features/gallery/store/type
 import queryString from 'query-string';
 import type {
   BoardDTO,
+  BoardMoveRequest,
   CreateBoardArg,
   ImageCategory,
   ListBoardsArgs,
@@ -125,6 +126,83 @@ export const boardsApi = api.injectEndpoints({
         return tags;
       },
     }),
+
+    // Hierarchy endpoints for nested folder support
+
+    getBoardChildren: build.query<Array<BoardDTO>, string>({
+      query: (board_id) => ({
+        url: buildBoardsUrl(`${board_id}/children`),
+      }),
+      providesTags: (result, error, arg) => {
+        const tags: ApiTagDescription[] = [{ type: 'Board', id: `children-${arg}` }, 'FetchOnReconnect'];
+        if (result) {
+          tags.push(...result.map(({ board_id }) => ({ type: 'Board' as const, id: board_id })));
+        }
+        return tags;
+      },
+    }),
+
+    getBoardDescendants: build.query<Array<BoardDTO>, string>({
+      query: (board_id) => ({
+        url: buildBoardsUrl(`${board_id}/descendants`),
+      }),
+      providesTags: (result, error, arg) => {
+        const tags: ApiTagDescription[] = [{ type: 'Board', id: `descendants-${arg}` }, 'FetchOnReconnect'];
+        if (result) {
+          tags.push(...result.map(({ board_id }) => ({ type: 'Board' as const, id: board_id })));
+        }
+        return tags;
+      },
+    }),
+
+    getBoardAncestors: build.query<Array<BoardDTO>, string>({
+      query: (board_id) => ({
+        url: buildBoardsUrl(`${board_id}/ancestors`),
+      }),
+      providesTags: (result, error, arg) => {
+        const tags: ApiTagDescription[] = [{ type: 'Board', id: `ancestors-${arg}` }, 'FetchOnReconnect'];
+        if (result) {
+          tags.push(...result.map(({ board_id }) => ({ type: 'Board' as const, id: board_id })));
+        }
+        return tags;
+      },
+    }),
+
+    moveBoard: build.mutation<BoardDTO, { board_id: string; move_request: BoardMoveRequest }>({
+      query: ({ board_id, move_request }) => ({
+        url: buildBoardsUrl(`${board_id}/move`),
+        method: 'PATCH',
+        body: move_request,
+      }),
+      invalidatesTags: (result, error, arg) => [
+        { type: 'Board', id: LIST_TAG },
+        { type: 'Board', id: arg.board_id },
+        { type: 'Board', id: `children-root` },
+        { type: 'Board', id: `children-${arg.move_request.new_parent_id ?? 'root'}` },
+      ],
+    }),
+
+    // Unseen notifications endpoints
+
+    getUnseenCount: build.query<number, string>({
+      query: (board_id) => ({
+        url: buildBoardsUrl(`${board_id}/unseen_count`),
+      }),
+      providesTags: (result, error, arg) => [{ type: 'Board', id: `unseen-${arg}` }, 'FetchOnReconnect'],
+    }),
+
+    markImagesAsSeen: build.mutation<void, { board_id: string; image_names?: string[] }>({
+      query: ({ board_id, image_names }) => ({
+        url: buildBoardsUrl(`${board_id}/mark_seen`),
+        method: 'POST',
+        body: image_names ? { image_names } : null,
+      }),
+      invalidatesTags: (result, error, arg) => [
+        { type: 'Board', id: arg.board_id },
+        { type: 'Board', id: `unseen-${arg.board_id}` },
+        { type: 'Board', id: LIST_TAG },
+      ],
+    }),
   }),
 });
 
@@ -135,4 +213,12 @@ export const {
   useCreateBoardMutation,
   useUpdateBoardMutation,
   useListAllImageNamesForBoardQuery,
+  // Hierarchy hooks
+  useGetBoardChildrenQuery,
+  useGetBoardDescendantsQuery,
+  useGetBoardAncestorsQuery,
+  useMoveBoardMutation,
+  // Unseen notifications hooks
+  useGetUnseenCountQuery,
+  useMarkImagesAsSeenMutation,
 } = boardsApi;
