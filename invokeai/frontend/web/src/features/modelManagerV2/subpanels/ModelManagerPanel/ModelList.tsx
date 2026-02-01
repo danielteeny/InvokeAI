@@ -1,33 +1,47 @@
-import { Flex, Text, useToast } from '@invoke-ai/ui-library';
+import { Box, Flex, Text, useToast } from '@invoke-ai/ui-library';
 import { logger } from 'app/logging/logger';
 import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
 import ScrollableContent from 'common/components/OverlayScrollbars/ScrollableContent';
 import { buildUseDisclosure } from 'common/hooks/useBoolean';
 import { LoraCategoryManagerModal } from 'features/modelManagerV2/components/LoraCategoryManager';
-import { MODEL_CATEGORIES_AS_LIST } from 'features/modelManagerV2/models';
+import {
+  LORA_CATEGORIES_ORDER,
+  LORA_CATEGORY_TO_COLOR,
+  LORA_CATEGORY_TO_NAME,
+  MODEL_CATEGORIES_AS_LIST,
+} from 'features/modelManagerV2/models';
 import {
   clearModelSelection,
   type FilterableModelType,
+  selectCategoryViewEnabled,
   selectFilteredModelType,
   selectSearchTerm,
+  selectSelectedBaseModel,
+  selectSelectedLoraCategory,
   selectSelectedModelKeys,
   setSelectedModelKey,
 } from 'features/modelManagerV2/store/modelManagerV2Slice';
+import type { BaseModelType } from 'features/nodes/types/common';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { serializeError } from 'serialize-error';
+import { useListLoraCategoriesQuery } from 'services/api/endpoints/loraCategories';
 import {
   modelConfigsAdapterSelectors,
   useBulkDeleteModelsMutation,
   useGetModelConfigsQuery,
   useUpdateModelMutation,
 } from 'services/api/endpoints/models';
-import type { AnyModelConfig } from 'services/api/types';
+import type { AnyModelConfig, LoRAModelConfig } from 'services/api/types';
 
 import { BulkDeleteModelsModal } from './BulkDeleteModelsModal';
 import { BulkSetCategoryModal } from './BulkSetCategoryModal';
 import { FetchingModelsLoader } from './FetchingModelsLoader';
+import ModelListItem from './ModelListItem';
 import { ModelListWrapper } from './ModelListWrapper';
+
+// Type for LoRA config with optional category field
+type LoRAModelConfigWithCategory = LoRAModelConfig & { category?: string | null };
 
 const log = logger('models');
 
@@ -40,6 +54,9 @@ const ModelList = () => {
   const filteredModelType = useAppSelector(selectFilteredModelType);
   const searchTerm = useAppSelector(selectSearchTerm);
   const selectedModelKeys = useAppSelector(selectSelectedModelKeys);
+  const selectedBaseModel = useAppSelector(selectSelectedBaseModel);
+  const selectedLoraCategory = useAppSelector(selectSelectedLoraCategory);
+  const categoryViewEnabled = useAppSelector(selectCategoryViewEnabled);
   const { t } = useTranslation();
   const toast = useToast();
   const { isOpen: isDeleteOpen, close: closeDelete } = useBulkDeleteModal();
@@ -49,12 +66,47 @@ const ModelList = () => {
   const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
 
   const { data, isLoading } = useGetModelConfigsQuery();
+  const { data: loraCategories } = useListLoraCategoriesQuery();
   const [bulkDeleteModels] = useBulkDeleteModelsMutation();
   const [updateModel] = useUpdateModelMutation();
 
+  // Build category info map from API or fallback to hardcoded
+  const categoryInfoMap = useMemo(() => {
+    const map: Record<string, { name: string; color: string }> = {};
+    if (loraCategories) {
+      for (const cat of loraCategories) {
+        map[cat.id] = { name: cat.name, color: cat.color };
+      }
+    }
+    // Always include hardcoded as fallback
+    for (const id of LORA_CATEGORIES_ORDER) {
+      if (!map[id]) {
+        map[id] = {
+          name: LORA_CATEGORY_TO_NAME[id] ?? id,
+          color: LORA_CATEGORY_TO_COLOR[id] ?? '#9E9E9E',
+        };
+      }
+    }
+    return map;
+  }, [loraCategories]);
+
+  // Get ordered category IDs from API or fallback
+  const orderedCategoryIds = useMemo(() => {
+    if (loraCategories) {
+      return loraCategories.map((c) => c.id);
+    }
+    return LORA_CATEGORIES_ORDER as unknown as string[];
+  }, [loraCategories]);
+
   const models = useMemo(() => {
     const modelConfigs = modelConfigsAdapterSelectors.selectAll(data ?? { ids: [], entities: {} });
-    const baseFilteredModelConfigs = modelsFilter(modelConfigs, searchTerm, filteredModelType);
+    const baseFilteredModelConfigs = modelsFilter(
+      modelConfigs,
+      searchTerm,
+      filteredModelType,
+      selectedBaseModel,
+      selectedLoraCategory
+    );
     const byCategory: { i18nKey: string; configs: AnyModelConfig[] }[] = [];
     const total = baseFilteredModelConfigs.length;
     let renderedTotal = 0;
@@ -70,8 +122,44 @@ const ModelList = () => {
         `ModelList: Not all models were categorized - ensure all possible models are covered in MODEL_CATEGORIES`
       );
     }
-    return { total, byCategory };
-  }, [data, filteredModelType, searchTerm]);
+    return { total, byCategory, filteredConfigs: baseFilteredModelConfigs };
+  }, [data, filteredModelType, searchTerm, selectedBaseModel, selectedLoraCategory]);
+
+  // Group LoRAs by category for category view
+  const lorasByCategory = useMemo(() => {
+    if (!categoryViewEnabled || filteredModelType !== 'lora') {
+      return null;
+    }
+
+    const loraConfigs = models.filteredConfigs.filter((m) => m.type === 'lora') as LoRAModelConfigWithCategory[];
+    const groups: Record<string, LoRAModelConfigWithCategory[]> = {};
+
+    for (const categoryId of orderedCategoryIds) {
+      groups[categoryId] = [];
+    }
+    groups['uncategorized'] = [];
+
+    for (const lora of loraConfigs) {
+      const category = lora.category ?? 'uncategorized';
+      if (!groups[category]) {
+        groups[category] = [];
+      }
+      groups[category].push(lora);
+    }
+
+    // Get categories that have LoRAs
+    const categoriesWithLoRAs = orderedCategoryIds.filter((catId) => (groups[catId]?.length ?? 0) > 0);
+
+    // Also check for any LoRAs in categories not in the ordered list
+    const extraCategories = Object.keys(groups).filter(
+      (catId) => (groups[catId]?.length ?? 0) > 0 && !orderedCategoryIds.includes(catId)
+    );
+
+    return {
+      groups,
+      orderedCategories: [...categoriesWithLoRAs, ...extraCategories],
+    };
+  }, [categoryViewEnabled, filteredModelType, models.filteredConfigs, orderedCategoryIds]);
 
   const handleConfirmBulkDelete = useCallback(async () => {
     setIsDeleting(true);
@@ -230,9 +318,31 @@ const ModelList = () => {
         <ScrollableContent>
           <Flex flexDirection="column" w="full" h="full" gap={4}>
             {isLoading && <FetchingModelsLoader loadingMessage="Loading..." />}
-            {models.byCategory.map(({ i18nKey, configs }) => (
-              <ModelListWrapper key={i18nKey} title={t(i18nKey)} modelList={configs} />
-            ))}
+            {lorasByCategory
+              ? // Category grouping view for LoRAs
+                lorasByCategory.orderedCategories.map((categoryId) => {
+                  const group = lorasByCategory.groups[categoryId];
+                  if (!group?.length) {
+                    return null;
+                  }
+                  const info = categoryInfoMap[categoryId] ?? { name: categoryId, color: '#9E9E9E' };
+                  return (
+                    <Box key={categoryId} borderLeftWidth={3} borderLeftColor={info.color} pl={3}>
+                      <Text fontSize="sm" color={info.color} fontWeight="semibold" mb={2}>
+                        {info.name} ({group.length})
+                      </Text>
+                      <Flex flexDir="column" gap={1}>
+                        {group.map((model) => (
+                          <ModelListItem key={model.key} model={model} />
+                        ))}
+                      </Flex>
+                    </Box>
+                  );
+                })
+              : // Default category view (grouped by model type)
+                models.byCategory.map(({ i18nKey, configs }) => (
+                  <ModelListWrapper key={i18nKey} title={t(i18nKey)} modelList={configs} />
+                ))}
             {!isLoading && models.total === 0 && (
               <Flex w="full" h="full" alignItems="center" justifyContent="center">
                 <Text>{t('modelManager.noMatchingModels')}</Text>
@@ -268,7 +378,9 @@ export default memo(ModelList);
 const modelsFilter = <T extends AnyModelConfig>(
   data: T[],
   nameFilter: string,
-  filteredModelType: FilterableModelType | null
+  filteredModelType: FilterableModelType | null,
+  selectedBaseModel: BaseModelType | null,
+  selectedLoraCategory: string | null
 ): T[] => {
   return data.filter((model) => {
     const matchesFilter =
@@ -280,7 +392,18 @@ const modelsFilter = <T extends AnyModelConfig>(
 
     const matchesType = getMatchesType(model, filteredModelType);
 
-    return matchesFilter && matchesType;
+    // Filter by base model
+    const matchesBaseModel = selectedBaseModel ? model.base === selectedBaseModel : true;
+
+    // Filter by LoRA category (only applies to LoRA models)
+    let matchesLoraCategory = true;
+    if (selectedLoraCategory && model.type === 'lora') {
+      const loraModel = model as LoRAModelConfigWithCategory;
+      const modelCategory = loraModel.category ?? 'uncategorized';
+      matchesLoraCategory = modelCategory === selectedLoraCategory;
+    }
+
+    return matchesFilter && matchesType && matchesBaseModel && matchesLoraCategory;
   });
 };
 

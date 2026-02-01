@@ -3,7 +3,8 @@ import { createSelector, createSlice } from '@reduxjs/toolkit';
 import type { RootState } from 'app/store/store';
 import type { SliceConfig } from 'app/store/types';
 import { isPlainObject } from 'es-toolkit';
-import { zModelType } from 'features/nodes/types/common';
+import type { BaseModelType } from 'features/nodes/types/common';
+import { zBaseModelType, zModelType } from 'features/nodes/types/common';
 import { assert } from 'tsafe';
 import z from 'zod';
 
@@ -19,6 +20,9 @@ const zModelManagerState = z.object({
   scanPath: z.string().optional(),
   shouldInstallInPlace: z.boolean(),
   selectedModelKeys: z.array(z.string()),
+  selectedBaseModel: zBaseModelType.nullable(),
+  selectedLoraCategory: z.string().nullable(),
+  categoryViewEnabled: z.boolean(),
 });
 
 type ModelManagerState = z.infer<typeof zModelManagerState>;
@@ -32,6 +36,9 @@ const getInitialState = (): ModelManagerState => ({
   scanPath: undefined,
   shouldInstallInPlace: true,
   selectedModelKeys: [],
+  selectedBaseModel: null,
+  selectedLoraCategory: null,
+  categoryViewEnabled: false,
 });
 
 const slice = createSlice({
@@ -71,6 +78,15 @@ const slice = createSlice({
     clearModelSelection: (state) => {
       state.selectedModelKeys = [];
     },
+    setSelectedBaseModel: (state, action: PayloadAction<BaseModelType | null>) => {
+      state.selectedBaseModel = action.payload;
+    },
+    setSelectedLoraCategory: (state, action: PayloadAction<string | null>) => {
+      state.selectedLoraCategory = action.payload;
+    },
+    toggleCategoryView: (state) => {
+      state.categoryViewEnabled = !state.categoryViewEnabled;
+    },
   },
 });
 
@@ -84,6 +100,9 @@ export const {
   modelSelectionChanged,
   toggleModelSelection,
   clearModelSelection,
+  setSelectedBaseModel,
+  setSelectedLoraCategory,
+  toggleCategoryView,
 } = slice.actions;
 
 export const modelManagerSliceConfig: SliceConfig<typeof slice> = {
@@ -98,7 +117,15 @@ export const modelManagerSliceConfig: SliceConfig<typeof slice> = {
       }
       return zModelManagerState.parse(state);
     },
-    persistDenylist: ['selectedModelKey', 'selectedModelMode', 'filteredModelType', 'searchTerm', 'selectedModelKeys'],
+    persistDenylist: [
+      'selectedModelKey',
+      'selectedModelMode',
+      'filteredModelType',
+      'searchTerm',
+      'selectedModelKeys',
+      'selectedBaseModel',
+      'selectedLoraCategory',
+    ],
   },
 };
 
@@ -113,3 +140,6 @@ export const selectSearchTerm = createModelManagerSelector((mm) => mm.searchTerm
 export const selectFilteredModelType = createModelManagerSelector((mm) => mm.filteredModelType);
 export const selectShouldInstallInPlace = createModelManagerSelector((mm) => mm.shouldInstallInPlace);
 export const selectSelectedModelKeys = createModelManagerSelector((mm) => mm.selectedModelKeys);
+export const selectSelectedBaseModel = createModelManagerSelector((mm) => mm.selectedBaseModel);
+export const selectSelectedLoraCategory = createModelManagerSelector((mm) => mm.selectedLoraCategory);
+export const selectCategoryViewEnabled = createModelManagerSelector((mm) => mm.categoryViewEnabled);

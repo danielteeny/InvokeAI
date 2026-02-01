@@ -1,19 +1,59 @@
 import { Flex, IconButton, Input, InputGroup, InputRightElement, Tooltip } from '@invoke-ai/ui-library';
 import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
-import { selectSearchTerm, setSearchTerm } from 'features/modelManagerV2/store/modelManagerV2Slice';
+import {
+  selectFilteredModelType,
+  selectSearchTerm,
+  setSearchTerm,
+} from 'features/modelManagerV2/store/modelManagerV2Slice';
 import { t } from 'i18next';
 import type { ChangeEventHandler } from 'react';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { PiFoldersBold, PiXBold } from 'react-icons/pi';
+import { modelConfigsAdapterSelectors, useGetModelConfigsQuery } from 'services/api/endpoints/models';
+import type { AnyModelConfig, LoRAModelConfig } from 'services/api/types';
 
+import { BaseModelTabs } from './BaseModelTabs';
 import { useLoraCategoryManagerModal } from './ModelList';
 import { ModelListBulkActions } from './ModelListBulkActions';
+import { ModelManagerCategoryTabs } from './ModelManagerCategoryTabs';
 import { ModelTypeFilter } from './ModelTypeFilter';
+import { ToggleCategoryViewButton } from './ToggleCategoryViewButton';
 
 export const ModelListNavigation = memo(() => {
   const dispatch = useAppDispatch();
   const searchTerm = useAppSelector(selectSearchTerm);
+  const filteredModelType = useAppSelector(selectFilteredModelType);
   const categoryManagerModal = useLoraCategoryManagerModal();
+  const { data } = useGetModelConfigsQuery();
+
+  const isLoraFilter = filteredModelType === 'lora';
+
+  // Get all model configs for base model tabs
+  const modelConfigs = useMemo(() => {
+    if (!data) {
+      return [] as AnyModelConfig[];
+    }
+    const allConfigs = modelConfigsAdapterSelectors.selectAll(data);
+    // Filter by model type if a filter is active
+    if (filteredModelType) {
+      if (filteredModelType === 'refiner') {
+        return allConfigs.filter((m) => m.base === 'sdxl-refiner');
+      }
+      if (filteredModelType === 'main') {
+        return allConfigs.filter((m) => m.type === 'main' && m.base !== 'sdxl-refiner');
+      }
+      return allConfigs.filter((m) => m.type === filteredModelType);
+    }
+    return allConfigs;
+  }, [data, filteredModelType]);
+
+  // Get LoRA configs for category tabs
+  const loraConfigs = useMemo(() => {
+    if (!data) {
+      return [] as LoRAModelConfig[];
+    }
+    return modelConfigsAdapterSelectors.selectAll(data).filter((m) => m.type === 'lora') as LoRAModelConfig[];
+  }, [data]);
 
   const handleOpenCategoryManager = useCallback(() => {
     categoryManagerModal.open();
@@ -67,8 +107,11 @@ export const ModelListNavigation = memo(() => {
             variant="ghost"
           />
         </Tooltip>
+        {isLoraFilter && <ToggleCategoryViewButton />}
       </Flex>
       <ModelListBulkActions />
+      <BaseModelTabs modelConfigs={modelConfigs} />
+      {isLoraFilter && <ModelManagerCategoryTabs loraConfigs={loraConfigs} />}
     </Flex>
   );
 });

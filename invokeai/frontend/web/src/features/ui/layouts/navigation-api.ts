@@ -954,7 +954,9 @@ export class NavigationApi {
 
     // Clear container APIs for this tab
     const containerPrefix = this._getContainerPrefix(tab);
-    const containerKeysToDelete = Array.from(this._containerApis.keys()).filter((key) => key.startsWith(containerPrefix));
+    const containerKeysToDelete = Array.from(this._containerApis.keys()).filter((key) =>
+      key.startsWith(containerPrefix)
+    );
     for (const key of containerKeysToDelete) {
       this._containerApis.delete(key);
     }
