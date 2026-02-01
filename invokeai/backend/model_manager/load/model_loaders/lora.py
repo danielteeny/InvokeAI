@@ -101,8 +101,8 @@ class LoRALoader(ModelLoader):
         if self._model_base == BaseModelType.StableDiffusionXL:
             state_dict = convert_sdxl_keys_to_diffusers_format(state_dict)
             model = lora_model_from_sd_state_dict(state_dict=state_dict)
-        elif self._model_base in [BaseModelType.Flux, BaseModelType.Flux2]:
-            # Flux 2 uses same LoRA format converters as Flux 1
+        elif self._model_base == BaseModelType.Flux:
+            # Flux 1: Convert to BFL format (double_blocks.*, single_blocks.*)
             if config.format is ModelFormat.OMI:
                 # HACK(ryand): We set alpha=None for diffusers PEFT format models. These models are typically
                 # distributed as a single file without the associated metadata containing the alpha value. We chose
@@ -126,11 +126,47 @@ class LoRALoader(ModelLoader):
                 elif is_state_dict_likely_in_flux_xlabs_format(state_dict=state_dict):
                     model = lora_model_from_flux_xlabs_state_dict(state_dict=state_dict)
                 else:
-                    flux_version = "FLUX.2" if self._model_base == BaseModelType.Flux2 else "FLUX"
-                    raise ValueError(f"LoRA model is in unsupported {flux_version} format")
+                    raise ValueError("LoRA model is in unsupported FLUX format")
             else:
-                flux_version = "FLUX.2" if self._model_base == BaseModelType.Flux2 else "FLUX"
-                raise ValueError(f"LoRA model is in unsupported {flux_version} format: {config.format}")
+                raise ValueError(f"LoRA model is in unsupported FLUX format: {config.format}")
+        elif self._model_base == BaseModelType.Flux2:
+            # Flux 2: Keep diffusers format (transformer_blocks.*, single_transformer_blocks.*)
+            # Flux2Transformer2DModel uses diffusers layer names, not BFL format.
+            from invokeai.backend.patches.lora_conversions.flux2_lora_conversion_utils import (
+                is_state_dict_likely_in_flux2_aitoolkit_format,
+                is_state_dict_likely_in_flux2_onetrainer_format,
+                lora_model_from_flux2_aitoolkit_state_dict,
+                lora_model_from_flux2_diffusers_state_dict,
+                lora_model_from_flux2_onetrainer_state_dict,
+            )
+
+            if config.format is ModelFormat.OMI:
+                # OMI format - use diffusers conversion
+                model = lora_model_from_flux2_diffusers_state_dict(state_dict=state_dict, alpha=None)
+            elif config.format is ModelFormat.LyCORIS:
+                # Try to detect the specific LyCORIS format
+                if is_state_dict_likely_in_flux_diffusers_format(state_dict=state_dict):
+                    # PEFT/diffusers format - most common for Flux 2
+                    model = lora_model_from_flux2_diffusers_state_dict(state_dict=state_dict, alpha=None)
+                elif is_state_dict_likely_in_flux2_onetrainer_format(state_dict=state_dict):
+                    # OneTrainer format with diffusers-style layer names
+                    model = lora_model_from_flux2_onetrainer_state_dict(state_dict=state_dict)
+                elif is_state_dict_likely_in_flux2_aitoolkit_format(state_dict=state_dict):
+                    # AI-Toolkit format with diffusers-style layer names
+                    model = lora_model_from_flux2_aitoolkit_state_dict(state_dict=state_dict)
+                elif is_state_dict_likely_in_flux_onetrainer_format(state_dict=state_dict):
+                    # Flux 1 OneTrainer format - the keys use diffusers naming so might work for Flux 2
+                    model = lora_model_from_flux2_onetrainer_state_dict(state_dict=state_dict)
+                elif is_state_dict_likely_in_flux_aitoolkit_format(state_dict=state_dict):
+                    # Flux 1 AI-Toolkit format - try with Flux 2 conversion
+                    model = lora_model_from_flux2_aitoolkit_state_dict(state_dict=state_dict)
+                else:
+                    raise ValueError(
+                        f"LoRA model is in unsupported FLUX.2 format: {config.format}. "
+                        "Flux 2 LoRAs must be in diffusers PEFT, OneTrainer, or AI-Toolkit format."
+                    )
+            else:
+                raise ValueError(f"LoRA model is in unsupported FLUX.2 format: {config.format}")
         elif self._model_base in [BaseModelType.StableDiffusion1, BaseModelType.StableDiffusion2]:
             # Currently, we don't apply any conversions for SD1 and SD2 LoRA models.
             model = lora_model_from_sd_state_dict(state_dict=state_dict)
