@@ -1,7 +1,8 @@
-import { Box, Button, Flex, FormControl, FormLabel, Input, Select } from '@invoke-ai/ui-library';
+import { Box, Button, Flex, FormControl, FormLabel, Input, Menu, MenuButton, MenuItem, MenuList } from '@invoke-ai/ui-library';
 import type { ChangeEvent, KeyboardEvent } from 'react';
 import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PiCaretDownBold } from 'react-icons/pi';
 
 // Available color options for categories (hex values - optimized for dark UI readability)
 const CATEGORY_COLORS = [
@@ -29,7 +30,42 @@ const CATEGORY_COLORS = [
   { value: '#BDBDBD', label: 'Gray' },
   { value: '#90A4AE', label: 'Blue-Gray' },
   { value: '#9E9E9E', label: 'Dark Gray' },
+  { value: '#EA3323', label: 'Inverted Red' },
 ] as const;
+
+// Convert hex to rgba with alpha for subtle backgrounds
+const hexToRgba = (hex: string, alpha: number) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+type ColorMenuItemProps = {
+  colorOption: (typeof CATEGORY_COLORS)[number];
+  isSelected: boolean;
+  onSelect: (value: string) => void;
+};
+
+const ColorMenuItem = memo(({ colorOption, isSelected, onSelect }: ColorMenuItemProps) => {
+  const handleClick = useCallback(() => {
+    onSelect(colorOption.value);
+  }, [colorOption.value, onSelect]);
+
+  return (
+    <MenuItem
+      onClick={handleClick}
+      bg={isSelected ? hexToRgba(colorOption.value, 0.3) : 'transparent'}
+      color={colorOption.value}
+      borderLeftWidth={3}
+      borderLeftColor={colorOption.value}
+      _hover={{ bg: hexToRgba(colorOption.value, 0.2) }}
+    >
+      {colorOption.label}
+    </MenuItem>
+  );
+});
+ColorMenuItem.displayName = 'ColorMenuItem';
 
 type Props = {
   initialName?: string;
@@ -54,10 +90,6 @@ export const LoraCategoryForm = memo(
 
     const handleNameChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
       setName(e.target.value);
-    }, []);
-
-    const handleColorChange = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
-      setColor(e.target.value);
     }, []);
 
     const handleKeyDown = useCallback(
@@ -87,13 +119,30 @@ export const LoraCategoryForm = memo(
           <FormLabel>{t('modelManager.categoryColor')}</FormLabel>
           <Flex gap={2} alignItems="center">
             <Box w={6} h={6} borderRadius="md" bg={color} flexShrink={0} />
-            <Select value={color} onChange={handleColorChange}>
-              {CATEGORY_COLORS.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </Select>
+            <Menu>
+              <MenuButton
+                as={Button}
+                size="sm"
+                variant="outline"
+                rightIcon={<PiCaretDownBold />}
+                w="full"
+                textAlign="left"
+                color={color}
+                borderColor={hexToRgba(color, 0.4)}
+              >
+                {CATEGORY_COLORS.find((c) => c.value === color)?.label ?? 'Select color'}
+              </MenuButton>
+              <MenuList maxH="300px" overflowY="auto">
+                {CATEGORY_COLORS.map((c) => (
+                  <ColorMenuItem
+                    key={c.value}
+                    colorOption={c}
+                    isSelected={color === c.value}
+                    onSelect={setColor}
+                  />
+                ))}
+              </MenuList>
+            </Menu>
           </Flex>
         </FormControl>
         <Flex gap={2} justifyContent="flex-end">

@@ -72,7 +72,7 @@ export const LoRAList = memo(() => {
       if (!map[id]) {
         map[id] = {
           name: LORA_CATEGORY_TO_NAME[id] ?? id,
-          color: LORA_CATEGORY_TO_COLOR[id] ?? 'base',
+          color: LORA_CATEGORY_TO_COLOR[id] ?? '#9E9E9E',
         };
       }
     }
@@ -208,10 +208,10 @@ export const LoRAList = memo(() => {
           if (!group?.length) {
             return null;
           }
-          const info = categoryInfoMap[categoryId] ?? { name: categoryId, color: 'base' };
+          const info = categoryInfoMap[categoryId] ?? { name: categoryId, color: '#9E9E9E' };
           return (
-            <Box key={categoryId} borderLeftWidth={3} borderLeftColor={`${info.color}.500`} pl={2}>
-              <Text fontSize="xs" color={`${info.color}.300`} fontWeight="semibold" mb={1}>
+            <Box key={categoryId} borderLeftWidth={3} borderLeftColor={info.color} pl={2}>
+              <Text fontSize="xs" color={info.color} fontWeight="semibold" mb={1}>
                 {info.name}
               </Text>
               <Flex flexWrap="wrap" gap={2}>

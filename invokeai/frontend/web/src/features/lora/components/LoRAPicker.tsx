@@ -166,7 +166,7 @@ export const LoRAPicker = typedMemo(
             id: categoryId,
             name: LORA_CATEGORY_TO_NAME[categoryId] ?? categoryId,
             shortName: (LORA_CATEGORY_TO_NAME[categoryId] ?? categoryId).slice(0, 4),
-            color: `${LORA_CATEGORY_TO_COLOR[categoryId] ?? 'base'}.300`,
+            color: LORA_CATEGORY_TO_COLOR[categoryId] ?? '#9E9E9E',
             getOptionCountString: (count) => t('common.model_withCount', { count }),
             options: [],
           });
