@@ -14,6 +14,7 @@
         "toggleLeftPanel": "Toggle Left Panel (T)",
         "toggleViewerFullHeight": "Toggle Viewer Full Height",
         "toggleSettingsFullHeight": "Toggle Settings Full Height",
+        "resetTopPanelSplit": "Reset Panel Split",
         "uploadImage": "Upload Image",
         "uploadImages": "Upload Image(s)"
     },

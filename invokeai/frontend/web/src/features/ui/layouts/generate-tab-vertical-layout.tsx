@@ -31,6 +31,7 @@ import {
   DOCKVIEW_TAB_ID,
   DOCKVIEW_TAB_LAUNCHPAD_ID,
   DOCKVIEW_TAB_PROGRESS_ID,
+  GALLERY_CONTAINER_PANEL_ID,
   GALLERY_PANEL_DEFAULT_HEIGHT_PX,
   GALLERY_PANEL_ID,
   GALLERY_PANEL_MIN_HEIGHT_PX,
@@ -42,9 +43,6 @@ import {
   TOP_PANEL_MIN_HEIGHT_PX,
   VIEWER_PANEL_ID,
 } from './shared';
-
-// Panel IDs for vertical layout
-const GALLERY_CONTAINER_PANEL_ID = 'gallery-container-panel';
 
 const tabComponents = {
   [DOCKVIEW_TAB_ID]: DockviewTab,

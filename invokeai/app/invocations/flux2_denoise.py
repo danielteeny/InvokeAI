@@ -38,7 +38,7 @@ from invokeai.backend.flux2.sampling_utils import (
 )
 from invokeai.backend.model_manager.taxonomy import BaseModelType, ModelFormat, ModelType
 from invokeai.backend.patches.layer_patcher import LayerPatcher
-from invokeai.backend.patches.lora_conversions.flux_lora_constants import FLUX_LORA_TRANSFORMER_PREFIX
+from invokeai.backend.patches.lora_conversions.flux_lora_constants import FLUX2_LORA_TRANSFORMER_PREFIX
 from invokeai.backend.patches.model_patch_raw import ModelPatchRaw
 from invokeai.backend.rectified_flow.rectified_flow_inpaint_extension import RectifiedFlowInpaintExtension
 from invokeai.backend.stable_diffusion.diffusers_pipeline import PipelineIntermediateState
@@ -416,7 +416,7 @@ class Flux2DenoiseInvocation(BaseInvocation):
                 LayerPatcher.apply_smart_model_patches(
                     model=transformer,
                     patches=self._lora_iterator(context),
-                    prefix=FLUX_LORA_TRANSFORMER_PREFIX,
+                    prefix=FLUX2_LORA_TRANSFORMER_PREFIX,
                     dtype=inference_dtype,
                     cached_weights=cached_weights,
                     force_sidecar_patching=model_is_quantized,

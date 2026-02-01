@@ -9,13 +9,16 @@ import type { Atom } from 'nanostores';
 import { atom } from 'nanostores';
 
 import {
+  GALLERY_CONTAINER_PANEL_ID,
   LAUNCHPAD_PANEL_ID,
   LEFT_PANEL_ID,
   LEFT_PANEL_MIN_SIZE_PX,
   MAIN_PANEL_ID,
   MAIN_PANEL_MIN_HEIGHT_PX,
+  RIGHT_CONTAINER_PANEL_ID,
   RIGHT_PANEL_ID,
   RIGHT_PANEL_MIN_SIZE_PX,
+  SETTINGS_PANEL_ID,
   SWITCH_TABS_FAKE_DELAY_MS,
   TOP_PANEL_ID,
   TOP_PANEL_MIN_HEIGHT_PX,
@@ -112,6 +115,12 @@ export class NavigationApi {
    * This is used to clean up resources when a tab is unregistered.
    */
   _disposablesForTab: Map<TabName, Set<() => void>> = new Map();
+
+  /**
+   * Map of container APIs, keyed by `${tab}:container:${containerId}`.
+   * Used to access container APIs for operations like resetting panel splits.
+   */
+  private _containerApis: Map<string, DockviewApi | GridviewApi> = new Map();
 
   /**
    * Convenience method to add a dispose function for a specific tab.
@@ -253,6 +262,9 @@ export class NavigationApi {
     }
 
     const key = this._getContainerKey(tab, id);
+
+    // Store the container API for later access (e.g., resetting panel splits)
+    this._containerApis.set(key, api);
 
     const stored = this._app.storage.get(key);
     if (stored) {
@@ -579,6 +591,58 @@ export class NavigationApi {
   };
 
   /**
+   * Reset the top panel split to equal sizes (1:1 ratio) in vertical layout.
+   * This resets the horizontal split between settings panel and gallery/boards container.
+   *
+   * @returns True if the reset was successful, false otherwise
+   */
+  resetTopPanelSplit = (): boolean => {
+    const activeTab = this._app?.activeTab.get() ?? null;
+    if (!activeTab) {
+      log.warn('No active tab found to reset top panel split');
+      return false;
+    }
+
+    // Get the 'top' container's GridviewApi
+    const topContainerKey = this._getContainerKey(activeTab, 'top');
+    const topApi = this._containerApis.get(topContainerKey);
+    if (!topApi) {
+      log.warn(`Top container API not found for tab "${activeTab}"`);
+      return false;
+    }
+
+    // The top container is a GridviewApi (horizontal orientation)
+    if (!(topApi instanceof DockviewApi)) {
+      const gridApi = topApi as GridviewApi;
+
+      // Get both panels in the top container
+      const settingsPanel = gridApi.getPanel(SETTINGS_PANEL_ID);
+      // Try both possible gallery container IDs (different tabs use different IDs)
+      const galleryContainer =
+        gridApi.getPanel(GALLERY_CONTAINER_PANEL_ID) ?? gridApi.getPanel(RIGHT_CONTAINER_PANEL_ID);
+
+      if (!settingsPanel || !galleryContainer) {
+        log.warn('Could not find settings or gallery container panel in top container');
+        return false;
+      }
+
+      // Get the total width of the top panel
+      const totalWidth = settingsPanel.width + galleryContainer.width;
+      const halfWidth = Math.floor(totalWidth / 2);
+
+      // Reset both panels to equal widths
+      settingsPanel.api.setSize({ width: halfWidth });
+      galleryContainer.api.setSize({ width: halfWidth });
+
+      log.trace(`Reset top panel split to 1:1 ratio (${halfWidth}px each)`);
+      return true;
+    }
+
+    log.warn('Top container is not a GridviewApi');
+    return false;
+  };
+
+  /**
    * Get a panel by its tab and ID.
    *
    * This method will not wait for the panel to be registered.
@@ -887,6 +951,13 @@ export class NavigationApi {
       }
     });
     this._disposablesForTab.delete(tab);
+
+    // Clear container APIs for this tab
+    const containerPrefix = this._getContainerPrefix(tab);
+    const containerKeysToDelete = Array.from(this._containerApis.keys()).filter((key) => key.startsWith(containerPrefix));
+    for (const key of containerKeysToDelete) {
+      this._containerApis.delete(key);
+    }
 
     log.trace(`Unregistered all panels for tab ${tab}`);
   };

@@ -41,15 +41,13 @@ import {
   LAYERS_PANEL_MIN_HEIGHT_PX,
   MAIN_PANEL_ID,
   MAIN_PANEL_MIN_HEIGHT_PX,
+  RIGHT_CONTAINER_PANEL_ID,
   SETTINGS_PANEL_ID,
   TOP_PANEL_ID,
   TOP_PANEL_MIN_HEIGHT_PX,
   VIEWER_PANEL_ID,
   WORKSPACE_PANEL_ID,
 } from './shared';
-
-// Panel IDs for vertical layout
-const RIGHT_CONTAINER_PANEL_ID = 'right-container-panel';
 
 const tabComponents = {
   [DOCKVIEW_TAB_LAUNCHPAD_ID]: DockviewTabLaunchpad,

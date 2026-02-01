@@ -41,3 +41,7 @@ export const TOP_PANEL_MIN_HEIGHT_PX = 100; // Minimum height for top panel in v
 export const MAIN_PANEL_MIN_HEIGHT_PX = 200; // Minimum height for main/viewer panel in vertical layout
 
 export const SWITCH_TABS_FAKE_DELAY_MS = 300;
+
+// Panel IDs for vertical layout containers
+export const GALLERY_CONTAINER_PANEL_ID = 'gallery-container-panel';
+export const RIGHT_CONTAINER_PANEL_ID = 'right-container-panel';
