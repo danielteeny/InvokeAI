@@ -39,7 +39,8 @@ import type { TabName } from 'features/ui/store/uiTypes';
 import i18n from 'i18next';
 import { atom, computed } from 'nanostores';
 import { useEffect } from 'react';
-import type { MainModelConfig } from 'services/api/types';
+import { modelConfigsAdapterSelectors, selectModelConfigsQuery } from 'services/api/endpoints/models';
+import type { LoRAModelConfig, MainModelConfig } from 'services/api/types';
 import { $isConnected } from 'services/events/stores';
 
 /**
@@ -115,6 +116,7 @@ const debouncedUpdateReasons = debounce(async (arg: UpdateReasonsArg) => {
       refImages,
       dynamicPrompts,
       loras,
+      store,
     });
     $reasonsWhyCannotEnqueue.set(reasons);
   } else if (tab === 'canvas') {
@@ -132,6 +134,7 @@ const debouncedUpdateReasons = debounce(async (arg: UpdateReasonsArg) => {
       canvasIsCompositing,
       canvasIsSelectingObject,
       loras,
+      store,
     });
     $reasonsWhyCannotEnqueue.set(reasons);
   } else if (tab === 'workflows') {
@@ -226,8 +229,9 @@ const getReasonsWhyCannotEnqueueGenerateTab = (arg: {
   refImages: RefImagesState;
   loras: LoRA[];
   dynamicPrompts: DynamicPromptsState;
+  store: AppStore;
 }) => {
-  const { isConnected, model, params, refImages, loras, dynamicPrompts } = arg;
+  const { isConnected, model, params, refImages, loras, dynamicPrompts, store } = arg;
   const { positivePrompt } = params;
   const reasons: Reason[] = [];
 
@@ -271,12 +275,45 @@ const getReasonsWhyCannotEnqueueGenerateTab = (arg: {
   }
 
   if (model) {
+    let hasBaseMismatch = false;
+    let hasVariantMismatch = false;
+    const modelConfigsResult = selectModelConfigsQuery(store.getState());
+
     for (const lora of loras.filter(({ isEnabled }) => isEnabled === true)) {
+      // Base model mismatch
       if (model.base !== lora.model.base) {
-        reasons.push({ content: i18n.t('parameters.invoke.incompatibleLoRAs') });
-        // Just add the warning once.
+        hasBaseMismatch = true;
         break;
       }
+      // Flux 2 variant mismatch check
+      if (model.base === 'flux2' && 'variant' in model && modelConfigsResult.data) {
+        const loraConfig = modelConfigsAdapterSelectors.selectById(
+          modelConfigsResult.data,
+          lora.model.key
+        ) as LoRAModelConfig | undefined;
+        if (loraConfig && 'variant' in loraConfig && loraConfig.variant && model.variant) {
+          // Check for variant compatibility
+          // 9B Base and 9B are compatible with each other
+          const is9BCompatible =
+            (model.variant === 'klein_9b_base' && loraConfig.variant === 'klein_9b') ||
+            (model.variant === 'klein_9b' && loraConfig.variant === 'klein_9b_base') ||
+            (model.variant === 'klein_9b_base' && loraConfig.variant === 'klein_9b_base') ||
+            (model.variant === 'klein_9b' && loraConfig.variant === 'klein_9b');
+          const is4BCompatible = model.variant === 'klein_4b' && loraConfig.variant === 'klein_4b';
+
+          if (!is9BCompatible && !is4BCompatible) {
+            hasVariantMismatch = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (hasBaseMismatch) {
+      reasons.push({ content: i18n.t('parameters.invoke.incompatibleLoRAs') });
+    }
+    if (hasVariantMismatch) {
+      reasons.push({ content: i18n.t('parameters.invoke.incompatibleKleinVariant') });
     }
   }
 
@@ -442,6 +479,7 @@ const getReasonsWhyCannotEnqueueCanvasTab = (arg: {
   canvasIsRasterizing: boolean;
   canvasIsCompositing: boolean;
   canvasIsSelectingObject: boolean;
+  store: AppStore;
 }) => {
   const {
     isConnected,
@@ -456,6 +494,7 @@ const getReasonsWhyCannotEnqueueCanvasTab = (arg: {
     canvasIsRasterizing,
     canvasIsCompositing,
     canvasIsSelectingObject,
+    store,
   } = arg;
   const { positivePrompt } = params;
   const reasons: Reason[] = [];
@@ -649,12 +688,45 @@ const getReasonsWhyCannotEnqueueCanvasTab = (arg: {
   }
 
   if (model) {
+    let hasBaseMismatch = false;
+    let hasVariantMismatch = false;
+    const modelConfigsResult = selectModelConfigsQuery(store.getState());
+
     for (const lora of loras.filter(({ isEnabled }) => isEnabled === true)) {
+      // Base model mismatch
       if (model.base !== lora.model.base) {
-        reasons.push({ content: i18n.t('parameters.invoke.incompatibleLoRAs') });
-        // Just add the warning once.
+        hasBaseMismatch = true;
         break;
       }
+      // Flux 2 variant mismatch check
+      if (model.base === 'flux2' && 'variant' in model && modelConfigsResult.data) {
+        const loraConfig = modelConfigsAdapterSelectors.selectById(
+          modelConfigsResult.data,
+          lora.model.key
+        ) as LoRAModelConfig | undefined;
+        if (loraConfig && 'variant' in loraConfig && loraConfig.variant && model.variant) {
+          // Check for variant compatibility
+          // 9B Base and 9B are compatible with each other
+          const is9BCompatible =
+            (model.variant === 'klein_9b_base' && loraConfig.variant === 'klein_9b') ||
+            (model.variant === 'klein_9b' && loraConfig.variant === 'klein_9b_base') ||
+            (model.variant === 'klein_9b_base' && loraConfig.variant === 'klein_9b_base') ||
+            (model.variant === 'klein_9b' && loraConfig.variant === 'klein_9b');
+          const is4BCompatible = model.variant === 'klein_4b' && loraConfig.variant === 'klein_4b';
+
+          if (!is9BCompatible && !is4BCompatible) {
+            hasVariantMismatch = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (hasBaseMismatch) {
+      reasons.push({ content: i18n.t('parameters.invoke.incompatibleLoRAs') });
+    }
+    if (hasVariantMismatch) {
+      reasons.push({ content: i18n.t('parameters.invoke.incompatibleKleinVariant') });
     }
   }
 

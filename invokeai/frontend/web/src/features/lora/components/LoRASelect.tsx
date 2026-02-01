@@ -4,7 +4,7 @@ import { createMemoizedSelector } from 'app/store/createMemoizedSelector';
 import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
 import { InformationalPopover } from 'common/components/InformationalPopover/InformationalPopover';
 import { loraAdded, lorasReplacedFromPreset, selectLoRAsSlice } from 'features/controlLayers/store/lorasSlice';
-import { selectBase } from 'features/controlLayers/store/paramsSlice';
+import { selectBase, selectMainModelConfig } from 'features/controlLayers/store/paramsSlice';
 import { LoRAPicker } from 'features/lora/components/LoRAPicker';
 import { SortLoRAsButton } from 'features/lora/components/SortLoRAsButton';
 import { memo, useCallback, useMemo, useState } from 'react';
@@ -39,6 +39,7 @@ const LoRASelect = () => {
   const { data: presets } = useListLoRAPresetsQuery();
 
   const currentBaseModel = useAppSelector(selectBase);
+  const mainModelConfig = useAppSelector(selectMainModelConfig);
 
   const toggleMode = useCallback(() => {
     setPickerMode((prev) => (prev === 'lora' ? 'preset' : 'lora'));
@@ -82,8 +83,29 @@ const LoRASelect = () => {
     if (!currentBaseModel) {
       return EMPTY_ARRAY;
     }
-    return modelConfigs.filter((model) => model.base === currentBaseModel);
-  }, [modelConfigs, currentBaseModel]);
+    return modelConfigs.filter((lora) => {
+      // Base must match
+      if (lora.base !== currentBaseModel) {
+        return false;
+      }
+      // For Flux2, check variant compatibility
+      // Note: currentBaseModel and lora.base are typed as string unions; use string comparison
+      if ((currentBaseModel as string) === 'flux2' && mainModelConfig && 'variant' in mainModelConfig) {
+        const mainVariant = mainModelConfig.variant as string | null | undefined;
+        const loraVariant = 'variant' in lora ? (lora.variant as string | null | undefined) : null;
+        // If LoRA has known variant, it must match (or be 9B compatible)
+        if (loraVariant && mainVariant) {
+          if (mainVariant === 'klein_4b' && loraVariant !== 'klein_4b') {
+            return false;
+          }
+          if ((mainVariant === 'klein_9b' || mainVariant === 'klein_9b_base') && loraVariant === 'klein_4b') {
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+  }, [modelConfigs, currentBaseModel, mainModelConfig]);
 
   const getIsDisabled = useCallback(
     (model: LoRAModelConfig): boolean => {

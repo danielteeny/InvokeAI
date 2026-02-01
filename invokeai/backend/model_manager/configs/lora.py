@@ -24,6 +24,7 @@ from invokeai.backend.model_manager.model_on_disk import ModelOnDisk
 from invokeai.backend.model_manager.omi import flux_dev_1_lora, stable_diffusion_xl_1_lora
 from invokeai.backend.model_manager.taxonomy import (
     BaseModelType,
+    Flux2VariantType,
     FluxLoRAFormat,
     ModelFormat,
     ModelType,
@@ -90,6 +91,43 @@ def _state_dict_indicates_flux2(state_dict: dict) -> bool:
             if any(dim > 64 for dim in state_dict[key].shape):
                 return True
     return False
+
+
+def _get_flux2_lora_variant(state_dict: dict) -> Flux2VariantType | None:
+    """Detect Flux 2 Klein variant from LoRA state dict.
+
+    Checks LoRA weights that patch the context_embedder layer.
+    - Klein 4B: context input dim = 7680 (3 × 2560)
+    - Klein 9B: context input dim = 12288 (3 × 4096)
+    """
+    KLEIN_4B_CONTEXT_DIM = 7680
+    KLEIN_9B_CONTEXT_DIM = 12288
+
+    for key in state_dict:
+        # Check for context_embedder LoRA weights
+        if "context_embedder" in key or "txt_in" in key:
+            weight = state_dict[key]
+            if hasattr(weight, "shape") and len(weight.shape) >= 2:
+                # lora_down: [rank, in_features] or lora_up: [out_features, rank]
+                dims = list(weight.shape)
+                for dim in dims:
+                    if dim == KLEIN_9B_CONTEXT_DIM:
+                        return Flux2VariantType.Klein9B
+                    elif dim == KLEIN_4B_CONTEXT_DIM:
+                        return Flux2VariantType.Klein4B
+
+    # Fallback: check filename for variant hints
+    return None
+
+
+def _get_flux2_lora_variant_from_filename(mod: ModelOnDisk) -> Flux2VariantType | None:
+    """Detect variant from filename patterns."""
+    filename = mod.path.stem.lower()
+    if "9b" in filename or "klein9" in filename:
+        return Flux2VariantType.Klein9B
+    if "4b" in filename or "klein4" in filename:
+        return Flux2VariantType.Klein4B
+    return None
 
 
 class LoRA_OMI_Config_Base(LoRA_Config_Base):
@@ -278,6 +316,16 @@ class LoRA_LyCORIS_Flux2_Config(LoRA_LyCORIS_Config_Base, Config_Base):
     """Model config for Flux 2 LoRA models in LyCORIS format."""
 
     base: Literal[BaseModelType.Flux2] = Field(default=BaseModelType.Flux2)
+    variant: Flux2VariantType | None = Field(default=None)
+
+    @classmethod
+    def _get_variant(cls, mod: ModelOnDisk) -> Flux2VariantType | None:
+        """Try to detect variant from state dict, then filename."""
+        state_dict = mod.load_state_dict()
+        variant = _get_flux2_lora_variant(state_dict)
+        if variant is None:
+            variant = _get_flux2_lora_variant_from_filename(mod)
+        return variant
 
     @classmethod
     def _validate_looks_like_lora(cls, mod: ModelOnDisk) -> None:
@@ -298,6 +346,21 @@ class LoRA_LyCORIS_Flux2_Config(LoRA_LyCORIS_Config_Base, Config_Base):
     @classmethod
     def _get_base_or_raise(cls, mod: ModelOnDisk) -> BaseModelType:
         return BaseModelType.Flux2
+
+    @classmethod
+    def from_model_on_disk(cls, mod: ModelOnDisk, override_fields: dict[str, Any]) -> Self:
+        """Override to include variant detection."""
+        raise_if_not_file(mod)
+
+        raise_for_override_fields(cls, override_fields)
+
+        cls._validate_looks_like_lora(mod)
+
+        cls._validate_base(mod)
+
+        variant = cls._get_variant(mod)
+
+        return cls(variant=variant, **override_fields)
 
 
 def _is_flux2_lora(mod: ModelOnDisk) -> bool:
