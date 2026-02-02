@@ -867,11 +867,11 @@ const GroupToggleButtons = typedMemo(<T extends object>() => {
   }
 
   return (
-    <Flex gap={2} alignItems="center">
+    <Flex gap={2} alignItems="center" overflowX="auto" flexWrap="nowrap">
       {groups.map((group) => (
         <GroupToggleButton key={group.id} group={group} />
       ))}
-      <Spacer />
+      <Spacer flexShrink={0} />
       <IconButton
         icon={<PiArrowCounterClockwiseBold />}
         aria-label={t('common.reset')}
@@ -932,6 +932,8 @@ const GroupToggleButton = typedMemo(<T extends object>({ group }: { group: Group
       borderColor={groupColor}
       borderWidth={1}
       onClick={onClick}
+      flexShrink={0}
+      whiteSpace="nowrap"
     >
       {shortName}
     </Badge>
