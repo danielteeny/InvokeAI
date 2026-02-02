@@ -32,6 +32,7 @@ import type { ChangeEvent, KeyboardEvent, MouseEvent } from 'react';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { PiCaretDownBold, PiFloppyDiskBold, PiLinkSimple, PiTrashSimpleBold } from 'react-icons/pi';
+import { useListLoraCategoriesQuery } from 'services/api/endpoints/loraCategories';
 import type { LoRAPresetRecordDTO } from 'services/api/endpoints/loraPresets';
 import { useGetRelatedModelIdsBatchQuery } from 'services/api/endpoints/modelRelationships';
 import type { LoRAModelConfig } from 'services/api/types';
@@ -135,6 +136,26 @@ export const LoRAPicker = typedMemo(
       ...relatedModelKeysQueryOptions,
     });
 
+    const { data: apiCategories } = useListLoraCategoriesQuery();
+
+    // Build a lookup map for category info (API categories + hardcoded fallbacks)
+    const categoryInfoMap = useMemo(() => {
+      const map: Record<string, { name: string; color: string }> = {};
+      // Add API categories first (includes both defaults and custom)
+      if (apiCategories) {
+        for (const cat of apiCategories) {
+          map[cat.id] = { name: cat.name, color: cat.color };
+        }
+      }
+      // Add hardcoded as fallback for any missing
+      for (const [id, name] of Object.entries(LORA_CATEGORY_TO_NAME)) {
+        if (!map[id]) {
+          map[id] = { name, color: LORA_CATEGORY_TO_COLOR[id] ?? '#9E9E9E' };
+        }
+      }
+      return map;
+    }, [apiCategories]);
+
     const options = useMemo<WithStarred<LoRAModelConfig>[] | Group<WithStarred<LoRAModelConfig>>[]>(() => {
       // Add starred field to all models
       const modelsWithStarred = modelConfigs.map((model) => ({
@@ -162,11 +183,12 @@ export const LoRAPicker = typedMemo(
         const categoryId = model.category ?? 'uncategorized';
         let group = groups[categoryId];
         if (!group) {
+          const catInfo = categoryInfoMap[categoryId] ?? { name: categoryId, color: '#9E9E9E' };
           group = buildGroup<WithStarred<LoRAModelConfig>>({
             id: categoryId,
-            name: LORA_CATEGORY_TO_NAME[categoryId] ?? categoryId,
-            shortName: LORA_CATEGORY_TO_NAME[categoryId] ?? categoryId,
-            color: LORA_CATEGORY_TO_COLOR[categoryId] ?? '#9E9E9E',
+            name: catInfo.name,
+            shortName: catInfo.name,
+            color: catInfo.color,
             getOptionCountString: (count) => t('common.model_withCount', { count }),
             options: [],
           });
@@ -205,7 +227,7 @@ export const LoRAPicker = typedMemo(
       }
 
       return orderedGroups;
-    }, [categoryViewEnabled, modelConfigs, relatedModelKeys, t]);
+    }, [categoryViewEnabled, categoryInfoMap, modelConfigs, relatedModelKeys, t]);
 
     const popover = useDisclosure(false);
     const pickerRef = useRef<PickerContextState<WithStarred<LoRAModelConfig>>>(null);
