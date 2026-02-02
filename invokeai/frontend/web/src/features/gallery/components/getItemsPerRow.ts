@@ -5,16 +5,25 @@
  * changes. Cache this calculation.
  */
 export const getItemsPerRow = (rootEl: HTMLDivElement): number => {
-  // Start from root and find virtuoso grid elements
-  const gridElement = rootEl.querySelector('.virtuoso-grid-list');
+  // Try Virtuoso grid first (infinite scroll mode)
+  let gridElement: Element | null = rootEl.querySelector('.virtuoso-grid-list');
+  let firstGridItem: Element | null = gridElement?.querySelector('.virtuoso-grid-item') ?? null;
 
-  if (!gridElement) {
-    return 0;
+  // Fall back to regular CSS Grid (pagination mode)
+  if (!gridElement || !firstGridItem) {
+    // Find the Chakra Grid container (has display: grid)
+    const candidates = rootEl.querySelectorAll('[class*="css-"]');
+    for (const candidate of candidates) {
+      const style = window.getComputedStyle(candidate);
+      if (style.display === 'grid') {
+        gridElement = candidate;
+        firstGridItem = candidate.children[0] ?? null;
+        break;
+      }
+    }
   }
 
-  const firstGridItem = gridElement.querySelector('.virtuoso-grid-item');
-
-  if (!firstGridItem) {
+  if (!gridElement || !firstGridItem) {
     return 0;
   }
 

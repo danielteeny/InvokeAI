@@ -152,6 +152,7 @@ const debouncedUpdateReasons = debounce(async (arg: UpdateReasonsArg) => {
       upscale,
       params,
       loras,
+      store,
     });
     $reasonsWhyCannotEnqueue.set(reasons);
   } else {
@@ -280,18 +281,24 @@ const getReasonsWhyCannotEnqueueGenerateTab = (arg: {
     const modelConfigsResult = selectModelConfigsQuery(store.getState());
 
     for (const lora of loras.filter(({ isEnabled }) => isEnabled === true)) {
-      // Base model mismatch
-      if (model.base !== lora.model.base) {
+      // Look up actual LoRA config to get real base model (needed for preset-loaded LoRAs with 'any' base)
+      const loraConfig = modelConfigsResult.data
+        ? (modelConfigsAdapterSelectors.selectById(modelConfigsResult.data, lora.model.key) as
+            | LoRAModelConfig
+            | undefined)
+        : undefined;
+
+      // Use config base if available, otherwise use stored base
+      const loraBase = loraConfig?.base ?? lora.model.base;
+
+      // Base model mismatch (skip 'any' which means unknown/preset-loaded and config not found)
+      if (loraBase !== 'any' && model.base !== loraBase) {
         hasBaseMismatch = true;
         break;
       }
       // Flux 2 variant mismatch check
-      if (model.base === 'flux2' && 'variant' in model && modelConfigsResult.data) {
-        const loraConfig = modelConfigsAdapterSelectors.selectById(
-          modelConfigsResult.data,
-          lora.model.key
-        ) as LoRAModelConfig | undefined;
-        if (loraConfig && 'variant' in loraConfig && loraConfig.variant && model.variant) {
+      if (model.base === 'flux2' && 'variant' in model && loraConfig) {
+        if ('variant' in loraConfig && loraConfig.variant && model.variant) {
           // Check for variant compatibility
           // 9B Base and 9B are compatible with each other
           const is9BCompatible =
@@ -424,8 +431,9 @@ const getReasonsWhyCannotEnqueueUpscaleTab = (arg: {
   upscale: UpscaleState;
   params: ParamsState;
   loras: LoRA[];
+  store: AppStore;
 }) => {
-  const { isConnected, upscale, params, loras } = arg;
+  const { isConnected, upscale, params, loras, store } = arg;
   const reasons: Reason[] = [];
 
   if (!isConnected) {
@@ -453,8 +461,21 @@ const getReasonsWhyCannotEnqueueUpscaleTab = (arg: {
       reasons.push({ content: i18n.t('upscaling.missingTileControlNetModel') });
     }
     if (model) {
+      const modelConfigsResult = selectModelConfigsQuery(store.getState());
+
       for (const lora of loras.filter(({ isEnabled }) => isEnabled === true)) {
-        if (model.base !== lora.model.base) {
+        // Look up actual LoRA config to get real base model (needed for preset-loaded LoRAs with 'any' base)
+        const loraConfig = modelConfigsResult.data
+          ? (modelConfigsAdapterSelectors.selectById(modelConfigsResult.data, lora.model.key) as
+              | LoRAModelConfig
+              | undefined)
+          : undefined;
+
+        // Use config base if available, otherwise use stored base
+        const loraBase = loraConfig?.base ?? lora.model.base;
+
+        // Base model mismatch (skip 'any' which means unknown/preset-loaded and config not found)
+        if (loraBase !== 'any' && model.base !== loraBase) {
           reasons.push({ content: i18n.t('parameters.invoke.incompatibleLoRAs') });
           // Just add the warning once.
           break;
@@ -693,18 +714,24 @@ const getReasonsWhyCannotEnqueueCanvasTab = (arg: {
     const modelConfigsResult = selectModelConfigsQuery(store.getState());
 
     for (const lora of loras.filter(({ isEnabled }) => isEnabled === true)) {
-      // Base model mismatch
-      if (model.base !== lora.model.base) {
+      // Look up actual LoRA config to get real base model (needed for preset-loaded LoRAs with 'any' base)
+      const loraConfig = modelConfigsResult.data
+        ? (modelConfigsAdapterSelectors.selectById(modelConfigsResult.data, lora.model.key) as
+            | LoRAModelConfig
+            | undefined)
+        : undefined;
+
+      // Use config base if available, otherwise use stored base
+      const loraBase = loraConfig?.base ?? lora.model.base;
+
+      // Base model mismatch (skip 'any' which means unknown/preset-loaded and config not found)
+      if (loraBase !== 'any' && model.base !== loraBase) {
         hasBaseMismatch = true;
         break;
       }
       // Flux 2 variant mismatch check
-      if (model.base === 'flux2' && 'variant' in model && modelConfigsResult.data) {
-        const loraConfig = modelConfigsAdapterSelectors.selectById(
-          modelConfigsResult.data,
-          lora.model.key
-        ) as LoRAModelConfig | undefined;
-        if (loraConfig && 'variant' in loraConfig && loraConfig.variant && model.variant) {
+      if (model.base === 'flux2' && 'variant' in model && loraConfig) {
+        if ('variant' in loraConfig && loraConfig.variant && model.variant) {
           // Check for variant compatibility
           // 9B Base and 9B are compatible with each other
           const is9BCompatible =

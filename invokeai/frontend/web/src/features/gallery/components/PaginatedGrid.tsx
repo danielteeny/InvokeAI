@@ -405,9 +405,9 @@ export const PaginatedGrid = memo(() => {
   }
 
   return (
-    <Flex direction="column" w="full" h="full" gap={2}>
+    <Flex direction="column" w="full" h="full" gap={2} overflow="hidden">
       {/* Grid container */}
-      <Box ref={containerRef} flex={1} overflow="auto" position="relative">
+      <Box ref={containerRef} flex={1} overflow="auto" position="relative" minH={0}>
         <Grid gridTemplateColumns={gridTemplateColumns} gap={1} p={1}>
           {pageImageNames.map((imageName) => (
             <GridItem key={imageName} aspectRatio="1/1">
@@ -420,7 +420,7 @@ export const PaginatedGrid = memo(() => {
 
       {/* Pagination controls */}
       {totalPages > 1 && (
-        <Flex justifyContent="center" alignItems="center" gap={2} py={2} px={4} bg="base.850" borderRadius="base">
+        <Flex justifyContent="center" alignItems="center" gap={2} py={2} px={4} bg="base.850" borderRadius="base" flexShrink={0}>
           <IconButton
             aria-label="Previous page"
             icon={<PiCaretLeftBold />}

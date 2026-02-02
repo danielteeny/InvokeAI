@@ -1,11 +1,26 @@
-import { Button, Flex, HStack, Tag, TagLabel } from '@invoke-ai/ui-library';
+import { Badge, Button, Flex, HStack } from '@invoke-ai/ui-library';
 import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
-import { MODEL_BASE_TO_COLOR, MODEL_BASE_TO_SHORT_NAME } from 'features/modelManagerV2/models';
+import { MODEL_BASE_TO_SHORT_NAME } from 'features/modelManagerV2/models';
 import { selectSelectedBaseModel, setSelectedBaseModel } from 'features/modelManagerV2/store/modelManagerV2Slice';
 import type { BaseModelType } from 'features/nodes/types/common';
 import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AnyModelConfig } from 'services/api/types';
+
+// Hex colors for base model types (matching the theme colors)
+const BASE_MODEL_HEX_COLORS: Record<string, string> = {
+  'sd-1': '#48BB78', // green
+  'sd-2': '#38B2AC', // teal
+  'sd-3': '#9F7AEA', // purple
+  sdxl: '#4299E1', // invokeBlue
+  'sdxl-refiner': '#4299E1', // invokeBlue
+  flux: '#D69E2E', // gold
+  flux2: '#D69E2E', // gold
+  cogview4: '#F56565', // red
+  'z-image': '#00B5D8', // cyan
+  any: '#A0AEC0', // base
+  unknown: '#F56565', // red
+};
 
 type BaseModelTagProps = {
   baseModel: BaseModelType;
@@ -15,27 +30,33 @@ type BaseModelTagProps = {
 
 const BaseModelTag = memo(({ baseModel, count, isSelected }: BaseModelTagProps) => {
   const dispatch = useAppDispatch();
-  const colorScheme = MODEL_BASE_TO_COLOR[baseModel] ?? 'base';
+  const hexColor = BASE_MODEL_HEX_COLORS[baseModel] ?? '#A0AEC0';
   const displayName = MODEL_BASE_TO_SHORT_NAME[baseModel] ?? baseModel;
 
   const handleClick = useCallback(() => {
     dispatch(setSelectedBaseModel(baseModel));
   }, [dispatch, baseModel]);
 
+  // Match the Picker dropdown styling exactly
+  const bg = isSelected ? hexColor : 'transparent';
+  const color = isSelected ? undefined : 'base.200';
+
   return (
-    <Tag
-      size="sm"
-      variant={isSelected ? 'solid' : 'subtle'}
-      colorScheme={colorScheme}
-      cursor="pointer"
+    <Badge
+      role="button"
+      size="xs"
+      variant="solid"
+      userSelect="none"
+      bg={bg}
+      color={color}
+      borderColor={hexColor}
+      borderWidth={1}
       onClick={handleClick}
       flexShrink={0}
-      _hover={{ opacity: 0.8 }}
+      whiteSpace="nowrap"
     >
-      <TagLabel>
-        {displayName} ({count})
-      </TagLabel>
-    </Tag>
+      {displayName} ({count})
+    </Badge>
   );
 });
 

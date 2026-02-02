@@ -6,8 +6,11 @@ import {
   modelSelectionChanged,
   selectFilteredModelType,
   selectSearchTerm,
+  selectSelectedBaseModel,
+  selectSelectedLoraCategory,
   selectSelectedModelKeys,
 } from 'features/modelManagerV2/store/modelManagerV2Slice';
+import type { BaseModelType } from 'features/nodes/types/common';
 import { t } from 'i18next';
 import { memo, useCallback, useMemo } from 'react';
 import { PiCaretDownBold, PiFolderSimpleBold, PiTrashSimpleBold } from 'react-icons/pi';
@@ -16,7 +19,10 @@ import {
   useGetMissingModelsQuery,
   useGetModelConfigsQuery,
 } from 'services/api/endpoints/models';
-import type { AnyModelConfig } from 'services/api/types';
+import type { AnyModelConfig, LoRAModelConfig } from 'services/api/types';
+
+// Type for LoRA config with optional category field
+type LoRAModelConfigWithCategory = LoRAModelConfig & { category?: string | null };
 
 import { useBulkDeleteModal, useBulkSetCategoryModal } from './ModelList';
 
@@ -35,6 +41,8 @@ export const ModelListBulkActions = memo(({ sx }: ModelListBulkActionsProps) => 
   const filteredModelType = useAppSelector(selectFilteredModelType);
   const selectedModelKeys = useAppSelector(selectSelectedModelKeys);
   const searchTerm = useAppSelector(selectSearchTerm);
+  const selectedBaseModel = useAppSelector(selectSelectedBaseModel);
+  const selectedLoraCategory = useAppSelector(selectSelectedLoraCategory);
   const { data: allModelsData } = useGetModelConfigsQuery();
   const { data: missingModelsData } = useGetMissingModelsQuery();
   const bulkDeleteModal = useBulkDeleteModal();
@@ -65,9 +73,9 @@ export const ModelListBulkActions = memo(({ sx }: ModelListBulkActionsProps) => 
       return filtered.map((m) => m.key);
     }
 
-    const filteredModels = modelsFilter(modelConfigs, searchTerm, filteredModelType);
+    const filteredModels = modelsFilter(modelConfigs, searchTerm, filteredModelType, selectedBaseModel, selectedLoraCategory);
     return filteredModels.map((m) => m.key);
-  }, [allModelsData, missingModelsData, searchTerm, filteredModelType]);
+  }, [allModelsData, missingModelsData, searchTerm, filteredModelType, selectedBaseModel, selectedLoraCategory]);
 
   const { allSelected, someSelected } = useMemo(() => {
     if (displayedModelKeys.length === 0) {
@@ -145,7 +153,9 @@ ModelListBulkActions.displayName = 'ModelListBulkActions';
 const modelsFilter = <T extends AnyModelConfig>(
   data: T[],
   nameFilter: string,
-  filteredModelType: FilterableModelType | null
+  filteredModelType: FilterableModelType | null,
+  selectedBaseModel: BaseModelType | null,
+  selectedLoraCategory: string | null
 ): T[] => {
   return data.filter((model) => {
     const matchesFilter =
@@ -157,7 +167,18 @@ const modelsFilter = <T extends AnyModelConfig>(
 
     const matchesType = getMatchesType(model, filteredModelType);
 
-    return matchesFilter && matchesType;
+    // Filter by base model
+    const matchesBaseModel = selectedBaseModel ? model.base === selectedBaseModel : true;
+
+    // Filter by LoRA category (only applies to LoRA models)
+    let matchesLoraCategory = true;
+    if (selectedLoraCategory && model.type === 'lora') {
+      const loraModel = model as LoRAModelConfigWithCategory;
+      const modelCategory = loraModel.category ?? 'uncategorized';
+      matchesLoraCategory = modelCategory === selectedLoraCategory;
+    }
+
+    return matchesFilter && matchesType && matchesBaseModel && matchesLoraCategory;
   });
 };
 

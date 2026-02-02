@@ -1,5 +1,4 @@
-import { Button, Flex, HStack, Tag, TagLabel } from '@invoke-ai/ui-library';
-import type { AppDispatch } from 'app/store/store';
+import { Badge, Button, Flex, HStack } from '@invoke-ai/ui-library';
 import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
 import { loraSelectedCategoryChanged, selectLoraSelectedCategory } from 'features/controlLayers/store/lorasSlice';
 import { LORA_CATEGORIES_ORDER, LORA_CATEGORY_TO_COLOR, LORA_CATEGORY_TO_NAME } from 'features/modelManagerV2/models';
@@ -11,52 +10,36 @@ import type { LoRAModelConfig } from 'services/api/types';
 // Type for LoRA config with optional category field (until OpenAPI schema is regenerated)
 type LoRAModelConfigWithCategory = LoRAModelConfig & { category?: string | null };
 
-// Convert hex to rgba with alpha
-const hexToRgba = (hex: string, alpha: number) => {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-};
-
-type CategoryTagProps = {
-  categoryId: string;
-  categoryName: string;
-  categoryColor: string;
+type CategoryBadgeProps = {
+  name: string;
+  color: string;
   count: number;
   isSelected: boolean;
-  dispatch: AppDispatch;
+  onClick: () => void;
 };
 
-const CategoryTag = memo(
-  ({ categoryId, categoryName, categoryColor, count, isSelected, dispatch }: CategoryTagProps) => {
-    const handleClick = useCallback(() => {
-      dispatch(loraSelectedCategoryChanged(categoryId));
-    }, [dispatch, categoryId]);
+const CategoryBadge = memo(({ name, color, count, isSelected, onClick }: CategoryBadgeProps) => {
+  return (
+    <Badge
+      role="button"
+      size="xs"
+      variant="solid"
+      userSelect="none"
+      cursor="pointer"
+      bg={isSelected ? color : 'transparent'}
+      color={isSelected ? undefined : 'base.200'}
+      borderColor={color}
+      borderWidth={1}
+      onClick={onClick}
+      flexShrink={0}
+      whiteSpace="nowrap"
+    >
+      {name} ({count})
+    </Badge>
+  );
+});
 
-    return (
-      <Tag
-        size="sm"
-        variant="subtle"
-        cursor="pointer"
-        onClick={handleClick}
-        flexShrink={0}
-        whiteSpace="nowrap"
-        bg={isSelected ? categoryColor : hexToRgba(categoryColor, 0.2)}
-        color={isSelected ? 'white' : categoryColor}
-        borderColor={hexToRgba(categoryColor, 0.4)}
-        borderWidth={1}
-        _hover={{ opacity: 0.8 }}
-      >
-        <TagLabel>
-          {categoryName} ({count})
-        </TagLabel>
-      </Tag>
-    );
-  }
-);
-
-CategoryTag.displayName = 'CategoryTag';
+CategoryBadge.displayName = 'CategoryBadge';
 
 type Props = {
   loraConfigs: LoRAModelConfig[];
@@ -90,8 +73,8 @@ export const CategoryTabs = memo(({ loraConfigs }: Props) => {
     for (const id of LORA_CATEGORIES_ORDER) {
       if (!map[id]) {
         map[id] = {
-          name: LORA_CATEGORY_TO_NAME[id] ?? id,
-          color: LORA_CATEGORY_TO_COLOR[id] ?? 'base',
+          name: LORA_CATEGORY_TO_NAME[id] ?? 'Unknown',
+          color: LORA_CATEGORY_TO_COLOR[id] ?? '#9E9E9E',
         };
       }
     }
@@ -147,16 +130,16 @@ export const CategoryTabs = memo(({ loraConfigs }: Props) => {
           {t('common.all')} ({totalCount})
         </Button>
         {availableCategories.map((categoryId) => {
-          const info = categoryInfoMap[categoryId] ?? { name: categoryId, color: '#9E9E9E' };
+          // If category not found in API or hardcoded, show "Unknown" instead of raw UUID
+          const info = categoryInfoMap[categoryId] ?? { name: 'Unknown', color: '#9E9E9E' };
           return (
-            <CategoryTag
+            <CategoryBadge
               key={categoryId}
-              categoryId={categoryId}
-              categoryName={info.name}
-              categoryColor={info.color}
+              name={info.name}
+              color={info.color}
               count={categoryCounts[categoryId] ?? 0}
               isSelected={selectedCategory === categoryId}
-              dispatch={dispatch}
+              onClick={() => dispatch(loraSelectedCategoryChanged(categoryId))}
             />
           );
         })}

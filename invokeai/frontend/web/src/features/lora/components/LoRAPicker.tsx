@@ -183,7 +183,8 @@ export const LoRAPicker = typedMemo(
         const categoryId = model.category ?? 'uncategorized';
         let group = groups[categoryId];
         if (!group) {
-          const catInfo = categoryInfoMap[categoryId] ?? { name: categoryId, color: '#9E9E9E' };
+          // If category not found in API or hardcoded, show "Unknown" instead of raw UUID
+          const catInfo = categoryInfoMap[categoryId] ?? { name: 'Unknown', color: '#9E9E9E' };
           group = buildGroup<WithStarred<LoRAModelConfig>>({
             id: categoryId,
             name: catInfo.name,

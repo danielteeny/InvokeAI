@@ -29,7 +29,8 @@ export const CategoryBadge = memo(({ category }: Props) => {
     }
     // Fallback to hardcoded values (also hex now)
     const fallbackColor = LORA_CATEGORY_TO_COLOR[categoryId] ?? '#9E9E9E';
-    const fallbackName = LORA_CATEGORY_TO_NAME[categoryId] ?? categoryId;
+    // If category not found in API or hardcoded, show "Unknown" instead of raw UUID
+    const fallbackName = LORA_CATEGORY_TO_NAME[categoryId] ?? 'Unknown';
     return { color: fallbackColor, displayName: fallbackName };
   }, [categories, categoryId]);
 
