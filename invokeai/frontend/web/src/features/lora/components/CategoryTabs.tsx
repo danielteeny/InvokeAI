@@ -11,14 +11,20 @@ import type { LoRAModelConfig } from 'services/api/types';
 type LoRAModelConfigWithCategory = LoRAModelConfig & { category?: string | null };
 
 type CategoryBadgeProps = {
+  categoryId: string;
   name: string;
   color: string;
   count: number;
   isSelected: boolean;
-  onClick: () => void;
 };
 
-const CategoryBadge = memo(({ name, color, count, isSelected, onClick }: CategoryBadgeProps) => {
+const CategoryBadge = memo(({ categoryId, name, color, count, isSelected }: CategoryBadgeProps) => {
+  const dispatch = useAppDispatch();
+
+  const handleClick = useCallback(() => {
+    dispatch(loraSelectedCategoryChanged(categoryId));
+  }, [dispatch, categoryId]);
+
   return (
     <Badge
       role="button"
@@ -30,7 +36,7 @@ const CategoryBadge = memo(({ name, color, count, isSelected, onClick }: Categor
       color={isSelected ? undefined : 'base.200'}
       borderColor={color}
       borderWidth={1}
-      onClick={onClick}
+      onClick={handleClick}
       flexShrink={0}
       whiteSpace="nowrap"
     >
@@ -135,11 +141,11 @@ export const CategoryTabs = memo(({ loraConfigs }: Props) => {
           return (
             <CategoryBadge
               key={categoryId}
+              categoryId={categoryId}
               name={info.name}
               color={info.color}
               count={categoryCounts[categoryId] ?? 0}
               isSelected={selectedCategory === categoryId}
-              onClick={() => dispatch(loraSelectedCategoryChanged(categoryId))}
             />
           );
         })}
