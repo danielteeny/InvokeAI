@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 from invokeai.app.services.lora_preset_records.lora_preset_records_common import (
     LoRAPresetRecordDTO,
+    LoRAPresetUpdate,
     LoRAPresetWithoutId,
 )
 
@@ -17,6 +18,11 @@ class LoRAPresetRecordsStorageBase(ABC):
     @abstractmethod
     def create(self, lora_preset: LoRAPresetWithoutId) -> LoRAPresetRecordDTO:
         """Creates a LoRA preset."""
+        pass
+
+    @abstractmethod
+    def update(self, lora_preset_id: str, changes: LoRAPresetUpdate) -> LoRAPresetRecordDTO:
+        """Updates a LoRA preset."""
         pass
 
     @abstractmethod

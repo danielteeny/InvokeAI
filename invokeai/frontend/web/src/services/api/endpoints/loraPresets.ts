@@ -21,6 +21,12 @@ type CreateLoRAPresetArg = {
   preset_data: LoRAPresetData;
 };
 
+type UpdateLoRAPresetArg = {
+  id: string;
+  name?: string;
+  preset_data?: LoRAPresetData;
+};
+
 /**
  * Builds an endpoint URL for the lora_presets router
  * @example
@@ -37,6 +43,12 @@ const loraPresetsApi = api.injectEndpoints({
       }),
       providesTags: ['FetchOnReconnect', { type: 'LoRAPreset', id: LIST_TAG }],
     }),
+    getLoRAPreset: build.query<LoRAPresetRecordDTO, string>({
+      query: (lora_preset_id) => ({
+        url: buildLoRAPresetsUrl(`i/${lora_preset_id}`),
+      }),
+      providesTags: (result, error, lora_preset_id) => [{ type: 'LoRAPreset', id: lora_preset_id }],
+    }),
     createLoRAPreset: build.mutation<LoRAPresetRecordDTO, CreateLoRAPresetArg>({
       query: (body) => ({
         url: buildLoRAPresetsUrl(),
@@ -44,6 +56,17 @@ const loraPresetsApi = api.injectEndpoints({
         body,
       }),
       invalidatesTags: [{ type: 'LoRAPreset', id: LIST_TAG }],
+    }),
+    updateLoRAPreset: build.mutation<LoRAPresetRecordDTO, UpdateLoRAPresetArg>({
+      query: ({ id, ...body }) => ({
+        url: buildLoRAPresetsUrl(`i/${id}`),
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'LoRAPreset', id: LIST_TAG },
+        { type: 'LoRAPreset', id },
+      ],
     }),
     deleteLoRAPreset: build.mutation<void, string>({
       query: (lora_preset_id) => ({
@@ -58,4 +81,10 @@ const loraPresetsApi = api.injectEndpoints({
   }),
 });
 
-export const { useListLoRAPresetsQuery, useCreateLoRAPresetMutation, useDeleteLoRAPresetMutation } = loraPresetsApi;
+export const {
+  useListLoRAPresetsQuery,
+  useGetLoRAPresetQuery,
+  useCreateLoRAPresetMutation,
+  useUpdateLoRAPresetMutation,
+  useDeleteLoRAPresetMutation,
+} = loraPresetsApi;

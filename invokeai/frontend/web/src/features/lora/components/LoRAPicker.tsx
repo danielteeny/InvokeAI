@@ -2,6 +2,8 @@ import type { BoxProps, ButtonProps, SystemStyleObject } from '@invoke-ai/ui-lib
 import {
   Button,
   Flex,
+  FormControl,
+  FormErrorMessage,
   Icon,
   IconButton,
   Input,
@@ -31,7 +33,7 @@ import { filesize } from 'filesize';
 import type { ChangeEvent, KeyboardEvent, MouseEvent } from 'react';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
-import { PiCaretDownBold, PiFloppyDiskBold, PiLinkSimple, PiTrashSimpleBold } from 'react-icons/pi';
+import { PiCaretDownBold, PiFloppyDiskBold, PiLinkSimple, PiTrashSimpleBold, PiXBold } from 'react-icons/pi';
 import { useListLoraCategoriesQuery } from 'services/api/endpoints/loraCategories';
 import type { LoRAPresetRecordDTO } from 'services/api/endpoints/loraPresets';
 import { useGetRelatedModelIdsBatchQuery } from 'services/api/endpoints/modelRelationships';
@@ -103,8 +105,9 @@ type LoRAPickerProps = {
   noOptionsText?: string;
   // Preset mode props
   presets?: LoRAPresetRecordDTO[];
+  isLoadingPresets?: boolean;
   onSelectPreset?: (preset: LoRAPresetRecordDTO) => void;
-  onDeletePreset?: (presetId: string) => void;
+  onDeletePreset?: (presetId: string) => Promise<void>;
   onSavePreset?: (name: string) => void;
   canSavePreset?: boolean;
   isSavingPreset?: boolean;
@@ -122,6 +125,7 @@ export const LoRAPicker = typedMemo(
     isDisabled,
     noOptionsText,
     presets,
+    isLoadingPresets,
     onSelectPreset,
     onDeletePreset,
     onSavePreset,
@@ -265,18 +269,30 @@ export const LoRAPicker = typedMemo(
       []
     );
 
+    const MAX_PRESET_NAME_LENGTH = 100;
+
     // Preset mode handlers
     const handlePresetNameChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
       setPresetName(e.target.value);
     }, []);
 
+    const presetNameError = useMemo(() => {
+      const trimmed = presetName.trim();
+      if (trimmed.length > MAX_PRESET_NAME_LENGTH) {
+        return t('lora.nameTooLong', { max: MAX_PRESET_NAME_LENGTH });
+      }
+      return null;
+    }, [presetName, t]);
+
+    const isPresetNameValid = presetName.trim().length > 0 && presetName.trim().length <= MAX_PRESET_NAME_LENGTH;
+
     const handleSavePreset = useCallback(() => {
-      if (!presetName.trim() || !onSavePreset) {
+      if (!isPresetNameValid || !onSavePreset) {
         return;
       }
       onSavePreset(presetName.trim());
       setPresetName('');
-    }, [onSavePreset, presetName]);
+    }, [onSavePreset, presetName, isPresetNameValid]);
 
     const handleKeyDown = useCallback(
       (e: KeyboardEvent) => {
@@ -296,8 +312,8 @@ export const LoRAPicker = typedMemo(
     );
 
     const handleDeletePreset = useCallback(
-      (presetId: string) => {
-        onDeletePreset?.(presetId);
+      async (presetId: string) => {
+        await onDeletePreset?.(presetId);
       },
       [onDeletePreset]
     );
@@ -342,29 +358,39 @@ export const LoRAPicker = typedMemo(
               ) : (
                 <Flex flexDir="column" h="full">
                   {/* Save preset input */}
-                  <Flex p={2} gap={2} borderBottomWidth={1} borderColor="base.700">
-                    <Input
-                      ref={inputRef}
-                      value={presetName}
-                      onChange={handlePresetNameChange}
-                      onKeyDown={handleKeyDown}
-                      placeholder={t('lora.presetNamePlaceholder')}
-                      size="sm"
-                    />
-                    <IconButton
-                      size="sm"
-                      onClick={handleSavePreset}
-                      isLoading={isSavingPreset}
-                      isDisabled={!presetName.trim() || !canSavePreset}
-                      tooltip={canSavePreset ? t('lora.savePreset') : t('lora.noLoRAsToSave')}
-                      aria-label={t('lora.savePreset')}
-                      icon={<PiFloppyDiskBold />}
-                      colorScheme="invokeGreen"
-                    />
+                  <Flex p={2} gap={2} borderBottomWidth={1} borderColor="base.700" flexDir="column">
+                    <Flex gap={2}>
+                      <FormControl isInvalid={!!presetNameError} flex={1}>
+                        <Input
+                          ref={inputRef}
+                          value={presetName}
+                          onChange={handlePresetNameChange}
+                          onKeyDown={handleKeyDown}
+                          placeholder={t('lora.presetNamePlaceholder')}
+                          size="sm"
+                          maxLength={MAX_PRESET_NAME_LENGTH + 1}
+                        />
+                        {presetNameError && <FormErrorMessage>{presetNameError}</FormErrorMessage>}
+                      </FormControl>
+                      <IconButton
+                        size="sm"
+                        onClick={handleSavePreset}
+                        isLoading={isSavingPreset}
+                        isDisabled={!isPresetNameValid || !canSavePreset}
+                        tooltip={canSavePreset ? t('lora.savePreset') : t('lora.noLoRAsToSave')}
+                        aria-label={t('lora.savePreset')}
+                        icon={<PiFloppyDiskBold />}
+                        colorScheme="invokeGreen"
+                      />
+                    </Flex>
                   </Flex>
                   {/* Presets list */}
                   <Flex flexDir="column" flex={1} overflowY="auto" p={2} gap={1}>
-                    {presets && presets.length > 0 ? (
+                    {isLoadingPresets ? (
+                      <Flex flex={1} alignItems="center" justifyContent="center">
+                        <Text color="base.400">{t('common.loading')}</Text>
+                      </Flex>
+                    ) : presets && presets.length > 0 ? (
                       presets.map((preset) => (
                         <PresetItem
                           key={preset.id}
@@ -394,7 +420,8 @@ LoRAPicker.displayName = 'LoRAPicker';
 type PresetItemProps = {
   preset: LoRAPresetRecordDTO;
   onSelect: (preset: LoRAPresetRecordDTO) => void;
-  onDelete: (presetId: string) => void;
+  onDelete: (presetId: string) => Promise<void>;
+  isDeleting?: boolean;
 };
 
 const presetItemSx: SystemStyleObject = {
@@ -406,33 +433,72 @@ const presetItemSx: SystemStyleObject = {
   },
 };
 
-const PresetItem = memo(({ preset, onSelect, onDelete }: PresetItemProps) => {
+const PresetItem = memo(({ preset, onSelect, onDelete, isDeleting }: PresetItemProps) => {
   const { t } = useTranslation();
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleClick = useCallback(() => {
+    if (confirmDelete) {
+      return;
+    }
     onSelect(preset);
-  }, [onSelect, preset]);
+  }, [onSelect, preset, confirmDelete]);
 
-  const handleDelete = useCallback(
+  const handleDeleteClick = useCallback(
     (e: MouseEvent) => {
       e.stopPropagation();
-      onDelete(preset.id);
+      if (confirmDelete) {
+        onDelete(preset.id);
+        setConfirmDelete(false);
+      } else {
+        setConfirmDelete(true);
+      }
     },
-    [onDelete, preset.id]
+    [onDelete, preset.id, confirmDelete]
   );
 
+  const handleCancelDelete = useCallback((e: MouseEvent) => {
+    e.stopPropagation();
+    setConfirmDelete(false);
+  }, []);
+
   return (
-    <Flex sx={presetItemSx} onClick={handleClick} justifyContent="space-between" alignItems="center">
-      <Text fontSize="sm">{preset.name}</Text>
-      <IconButton
-        size="xs"
-        variant="ghost"
-        colorScheme="error"
-        onClick={handleDelete}
-        tooltip={t('lora.deletePreset')}
-        aria-label={t('lora.deletePreset')}
-        icon={<PiTrashSimpleBold />}
-      />
+    <Flex sx={presetItemSx} onClick={handleClick} justifyContent="space-between" alignItems="center" gap={2}>
+      <Text fontSize="sm" noOfLines={1} flex={1}>
+        {preset.name}
+      </Text>
+      {confirmDelete ? (
+        <Flex gap={1}>
+          <IconButton
+            size="xs"
+            variant="ghost"
+            onClick={handleCancelDelete}
+            tooltip={t('common.cancel')}
+            aria-label={t('common.cancel')}
+            icon={<PiXBold />}
+          />
+          <IconButton
+            size="xs"
+            variant="solid"
+            colorScheme="error"
+            onClick={handleDeleteClick}
+            isLoading={isDeleting}
+            tooltip={t('lora.confirmDeletePreset')}
+            aria-label={t('lora.confirmDeletePreset')}
+            icon={<PiTrashSimpleBold />}
+          />
+        </Flex>
+      ) : (
+        <IconButton
+          size="xs"
+          variant="ghost"
+          colorScheme="error"
+          onClick={handleDeleteClick}
+          tooltip={t('lora.deletePreset')}
+          aria-label={t('lora.deletePreset')}
+          icon={<PiTrashSimpleBold />}
+        />
+      )}
     </Flex>
   );
 });

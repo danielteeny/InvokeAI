@@ -39,17 +39,21 @@ const ChangeBoardModal = () => {
   // Helper to build breadcrumb path for a board
   const getBreadcrumbLabel = useCallback(
     (boardId: string): string => {
-      if (boardId === 'none') return t('boards.uncategorized');
-      if (!boards) return '';
+      if (boardId === 'none') {
+        return t('boards.uncategorized');
+      }
+      if (!boards) {
+        return '';
+      }
 
       const board = boards.find((b) => b.board_id === boardId);
-      if (!board) return '';
+      if (!board) {
+        return '';
+      }
 
       // Build breadcrumb from path
       const pathIds = board.path?.split('/').filter(Boolean) ?? [];
-      const breadcrumbNames = pathIds
-        .map((id) => boards.find((b) => b.board_id === id)?.board_name)
-        .filter(Boolean);
+      const breadcrumbNames = pathIds.map((id) => boards.find((b) => b.board_id === id)?.board_name).filter(Boolean);
       breadcrumbNames.push(board.board_name);
 
       return breadcrumbNames.join(' > ');
@@ -67,14 +71,18 @@ const ChangeBoardModal = () => {
 
     // Helper to get depth from path (e.g., "/parent1/parent2" = depth 2)
     const getDepth = (path?: string | null): number => {
-      if (!path) return 0;
+      if (!path) {
+        return 0;
+      }
       return path.split('/').filter(Boolean).length;
     };
 
     // Build tree-style prefix with vertical lines
     const getTreePrefix = (board: (typeof boards)[0], sortedBoards: typeof boards): string => {
       const depth = getDepth(board.path);
-      if (depth === 0) return '';
+      if (depth === 0) {
+        return '';
+      }
 
       const pathIds = board.path?.split('/').filter(Boolean) ?? [];
       let prefix = '';
@@ -86,9 +94,7 @@ const ChangeBoardModal = () => {
 
         if (level < depth - 1) {
           // Not the last level - check if this ancestor has siblings after it
-          const ancestorSiblings = sortedBoards.filter(
-            (b) => b.parent_board_id === ancestor?.parent_board_id
-          );
+          const ancestorSiblings = sortedBoards.filter((b) => b.parent_board_id === ancestor?.parent_board_id);
           const ancestorIndex = ancestorSiblings.findIndex((b) => b.board_id === ancestorId);
           const ancestorHasMoreSiblings = ancestorIndex < ancestorSiblings.length - 1;
 
@@ -121,7 +127,9 @@ const ChangeBoardModal = () => {
       for (let i = 0; i < Math.min(aSegments.length, bSegments.length); i++) {
         const aSegment = aSegments[i];
         const bSegment = bSegments[i];
-        if (!aSegment || !bSegment) continue;
+        if (!aSegment || !bSegment) {
+          continue;
+        }
 
         const aBoard = boardMap.get(aSegment);
         const bBoard = boardMap.get(bSegment);
@@ -130,7 +138,9 @@ const ChangeBoardModal = () => {
           // Different boards at this level - sort by position, then name
           const aPos = aBoard?.position ?? 0;
           const bPos = bBoard?.position ?? 0;
-          if (aPos !== bPos) return aPos - bPos;
+          if (aPos !== bPos) {
+            return aPos - bPos;
+          }
           return (aBoard?.board_name ?? '').localeCompare(bBoard?.board_name ?? '');
         }
       }
@@ -154,7 +164,9 @@ const ChangeBoardModal = () => {
 
   // For the selected value, show breadcrumbs instead of tree prefix
   const value = useMemo(() => {
-    if (!selectedBoardId) return undefined;
+    if (!selectedBoardId) {
+      return undefined;
+    }
     return {
       label: getBreadcrumbLabel(selectedBoardId),
       value: selectedBoardId,

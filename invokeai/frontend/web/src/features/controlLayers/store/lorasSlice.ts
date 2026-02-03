@@ -119,29 +119,10 @@ const slice = createSlice({
     loraSelectedCategoryChanged: (state, action: PayloadAction<string | null>) => {
       state.selectedCategory = action.payload;
     },
-    lorasReplacedFromPreset: (
-      state,
-      action: PayloadAction<{ loras: Array<{ model_key: string; weight: number; is_enabled: boolean }> }>
-    ) => {
+    lorasReplacedFromPreset: (state, action: PayloadAction<{ loras: LoRA[] }>) => {
       const { loras } = action.payload;
-      state.loras = [];
-      state.manualOrder = [];
-      for (const item of loras) {
-        const id = uuidv4();
-        state.loras.push({
-          id,
-          model: {
-            key: item.model_key,
-            hash: 'unknown',
-            name: 'unknown',
-            base: 'any',
-            type: 'lora',
-          },
-          weight: item.weight,
-          isEnabled: item.is_enabled,
-        });
-        state.manualOrder.push(id);
-      }
+      state.loras = loras;
+      state.manualOrder = loras.map((lora) => lora.id);
     },
   },
   extraReducers(builder) {
