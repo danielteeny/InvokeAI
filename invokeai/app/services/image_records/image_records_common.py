@@ -229,3 +229,4 @@ class ImageNamesResult(BaseModel):
     image_names: list[str] = Field(description="Ordered list of image names")
     starred_count: int = Field(description="Number of starred images (when starred_first=True)")
     total_count: int = Field(description="Total number of images matching the query")
+    unseen_image_names: list[str] = Field(default_factory=list, description="List of unseen image names")

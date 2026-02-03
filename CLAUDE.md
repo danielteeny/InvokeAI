@@ -1,19 +1,29 @@
 # InvokeAI Development - Claude Code Instructions
 
+## Quick Start
+
+Start both servers in background (run these commands in parallel):
+
+```bash
+# Backend (runs on http://127.0.0.1:9090)
+/Users/danielteeny/vibecodeing/InvokeAI/InvokeAI/.venv/bin/invokeai-web
+
+# Frontend dev server (runs on http://100.116.27.77:5173)
+cd /Users/danielteeny/vibecodeing/InvokeAI/InvokeAI/invokeai/frontend/web && pnpm dev
+```
+
+Access the UI at: **http://100.116.27.77:5173**
+
 ## Resume Command
 
 When user types "resume", do the following:
 
 ### 1. Start InvokeAI
-```bash
-cd /Users/danielteeny/Downloads/InvokeAI/InvokeAI
-source .venv/bin/activate
-invokeai-web
-```
-Run this in the background so the user can continue chatting.
+Run both commands above in background so the user can continue chatting.
 
 ### 2. Provide Access URL
-- **Local UI**: http://127.0.0.1:9090
+- **Frontend Dev**: http://100.116.27.77:5173 (proxies to backend)
+- **Backend Direct**: http://127.0.0.1:9090
 
 ### 3. Check for Updates
 ```bash
@@ -38,7 +48,7 @@ Common areas of interest:
 
 ## Key Paths
 
-- **Project Root**: `/Users/danielteeny/Downloads/InvokeAI/InvokeAI`
+- **Project Root**: `/Users/danielteeny/vibecodeing/InvokeAI/InvokeAI`
 - **Virtual Environment**: `.venv/`
 - **Frontend Code**: `invokeai/frontend/web/src/`
 - **Backend Code**: `invokeai/app/` and `invokeai/backend/`

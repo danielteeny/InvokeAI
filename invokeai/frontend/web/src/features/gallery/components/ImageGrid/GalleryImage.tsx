@@ -1,7 +1,7 @@
 import { combine } from '@atlaskit/pragmatic-drag-and-drop/combine';
 import { draggable, monitorForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import type { FlexProps } from '@invoke-ai/ui-library';
-import { Flex, Icon, Image } from '@invoke-ai/ui-library';
+import { Box, Flex, Icon, Image } from '@invoke-ai/ui-library';
 import { createSelector } from '@reduxjs/toolkit';
 import type { AppDispatch, AppGetState } from 'app/store/store';
 import { useAppSelector, useAppStore } from 'app/store/storeHooks';
@@ -25,7 +25,7 @@ import { VIEWER_PANEL_ID } from 'features/ui/layouts/shared';
 import type { MouseEvent, MouseEventHandler } from 'react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PiImageBold } from 'react-icons/pi';
-import { imagesApi } from 'services/api/endpoints/images';
+import { imagesApi, useGetImageNamesQuery } from 'services/api/endpoints/images';
 import type { ImageDTO } from 'services/api/types';
 
 import { galleryItemContainerSX } from './galleryItemContainerSX';
@@ -102,6 +102,16 @@ export const GalleryImage = memo(({ imageDTO }: Props) => {
     [imageDTO.image_name]
   );
   const isSelected = useAppSelector(selectIsSelected);
+
+  // Unseen indicator: check if this image is in the unseen list
+  const queryArgs = useAppSelector(selectGetImageNamesQueryArgs);
+  const { data: imageNamesResult } = useGetImageNamesQuery(queryArgs);
+  const isUnseen = useMemo(() => {
+    if (!imageNamesResult?.unseen_image_names) {
+      return false;
+    }
+    return imageNamesResult.unseen_image_names.includes(imageDTO.image_name);
+  }, [imageNamesResult?.unseen_image_names, imageDTO.image_name]);
 
   useEffect(() => {
     const element = ref.current;
@@ -183,7 +193,10 @@ export const GalleryImage = memo(({ imageDTO }: Props) => {
     setIsHovered(false);
   }, []);
 
-  const onClick = useMemo(() => buildOnClick(imageDTO.image_name, store.dispatch, store.getState), [imageDTO, store]);
+  const onClick = useMemo(
+    () => buildOnClick(imageDTO.image_name, store.dispatch, store.getState),
+    [imageDTO.image_name, store]
+  );
 
   const onDoubleClick = useCallback<MouseEventHandler<HTMLDivElement>>(() => {
     store.dispatch(imageToCompareChanged(null));
@@ -218,6 +231,19 @@ export const GalleryImage = memo(({ imageDTO }: Props) => {
           borderRadius="base"
         />
         <GalleryItemHoverIcons imageDTO={imageDTO} isHovered={isHovered} />
+        {/* Unseen indicator - triangular earmark in bottom-right corner */}
+        {isUnseen && (
+          <Box
+            position="absolute"
+            bottom={0}
+            right={0}
+            w="8px"
+            h="8px"
+            bg="invokeYellow.500"
+            clipPath="polygon(100% 0, 100% 100%, 0 100%)"
+            pointerEvents="none"
+          />
+        )}
       </Flex>
       {dragPreviewState?.type === 'multiple-image' ? createMultipleImageDragPreview(dragPreviewState) : null}
       {dragPreviewState?.type === 'single-image' ? createSingleImageDragPreview(dragPreviewState) : null}

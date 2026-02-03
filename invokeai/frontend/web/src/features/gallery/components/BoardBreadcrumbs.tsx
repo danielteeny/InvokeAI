@@ -66,11 +66,7 @@ export const BoardBreadcrumbs = memo(() => {
 
   return (
     <Flex alignItems="center" gap={1} py={1} px={2} bg="base.850" borderRadius="base">
-      <Breadcrumb
-        separator={<Icon as={PiCaretRightBold} color="base.500" boxSize={3} />}
-        spacing={1}
-        fontSize="sm"
-      >
+      <Breadcrumb separator={<Icon as={PiCaretRightBold} color="base.500" boxSize={3} />} spacing={1} fontSize="sm">
         {/* Root/Home */}
         <BreadcrumbItem>
           <BreadcrumbLink

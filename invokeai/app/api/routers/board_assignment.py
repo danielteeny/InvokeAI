@@ -16,6 +16,9 @@ from invokeai.app.services.board_assignment.board_assignment_common import (
     ReorderRequest,
 )
 from invokeai.app.services.board_assignment.board_assignment_default import BoardAssignmentRuleNotFoundException
+from invokeai.backend.util.logging import logging
+
+logger = logging.getLogger(__name__)
 
 board_assignment_router = APIRouter(prefix="/v1/board_assignment", tags=["board_assignment"])
 
@@ -74,7 +77,8 @@ async def create_rule(
     """Create a new board assignment rule."""
     try:
         return ApiDependencies.invoker.services.board_assignment.create_rule(rule)
-    except Exception:
+    except Exception as e:
+        logger.error(f"Failed to create rule: {e}")
         raise HTTPException(status_code=500, detail="Failed to create rule")
 
 
@@ -92,7 +96,8 @@ async def update_rule(
         return ApiDependencies.invoker.services.board_assignment.update_rule(rule_id, changes)
     except BoardAssignmentRuleNotFoundException:
         raise HTTPException(status_code=404, detail="Rule not found")
-    except Exception:
+    except Exception as e:
+        logger.error(f"Failed to update rule {rule_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to update rule")
 
 
@@ -109,7 +114,8 @@ async def delete_rule(
         ApiDependencies.invoker.services.board_assignment.delete_rule(rule_id)
     except BoardAssignmentRuleNotFoundException:
         raise HTTPException(status_code=404, detail="Rule not found")
-    except Exception:
+    except Exception as e:
+        logger.error(f"Failed to delete rule {rule_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete rule")
 
 
@@ -124,7 +130,8 @@ async def reorder_rules(
     """Reorder board assignment rules by priority."""
     try:
         return ApiDependencies.invoker.services.board_assignment.reorder_rules(request.rule_ids)
-    except Exception:
+    except Exception as e:
+        logger.error(f"Failed to reorder rules: {e}")
         raise HTTPException(status_code=500, detail="Failed to reorder rules")
 
 
@@ -147,7 +154,11 @@ async def evaluate_rules(
     request: EvaluateRequest = Body(description="The evaluation request"),
 ) -> EvaluationResult:
     """Evaluate board assignment rules against provided metadata."""
-    return ApiDependencies.invoker.services.board_assignment.evaluate(request.metadata, request.strategy)
+    try:
+        return ApiDependencies.invoker.services.board_assignment.evaluate(request.metadata, request.strategy)
+    except Exception as e:
+        logger.error(f"Failed to evaluate rules: {e}")
+        raise HTTPException(status_code=500, detail="Failed to evaluate rules")
 
 
 @board_assignment_router.post(

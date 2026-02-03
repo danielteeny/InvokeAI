@@ -8,25 +8,33 @@ class Migration30Callback:
         self._add_unseen_columns(cursor)
         self._create_indexes(cursor)
 
+    def _column_exists(self, cursor: sqlite3.Cursor, table: str, column: str) -> bool:
+        """Check if a column exists in a table."""
+        cursor.execute(f"PRAGMA table_info({table});")
+        columns = [row[1] for row in cursor.fetchall()]
+        return column in columns
+
     def _add_unseen_columns(self, cursor: sqlite3.Cursor) -> None:
         """
         Adds columns to board_images for tracking unseen (new) images.
         - is_seen: Whether the user has viewed this image in this board
         - added_at: When the image was added to the board
         """
-        # Add is_seen column (constant default - OK)
-        cursor.execute(
-            """--sql
-            ALTER TABLE board_images ADD COLUMN is_seen INTEGER DEFAULT 0;
-            """
-        )
+        # Add is_seen column (constant default - OK) if it doesn't exist
+        if not self._column_exists(cursor, "board_images", "is_seen"):
+            cursor.execute(
+                """--sql
+                ALTER TABLE board_images ADD COLUMN is_seen INTEGER DEFAULT 0;
+                """
+            )
 
         # Add added_at column WITHOUT default (SQLite doesn't allow CURRENT_TIMESTAMP as default)
-        cursor.execute(
-            """--sql
-            ALTER TABLE board_images ADD COLUMN added_at DATETIME;
-            """
-        )
+        if not self._column_exists(cursor, "board_images", "added_at"):
+            cursor.execute(
+                """--sql
+                ALTER TABLE board_images ADD COLUMN added_at DATETIME;
+                """
+            )
 
         # Set existing rows to current timestamp
         cursor.execute(

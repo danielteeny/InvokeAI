@@ -18,8 +18,9 @@ class BoardRecordStorageBase(ABC):
     def save(
         self,
         board_name: str,
+        parent_board_id: Optional[str] = None,
     ) -> BoardRecord:
-        """Saves a board record."""
+        """Saves a board record. Optionally specify a parent board to create as a subfolder."""
         pass
 
     @abstractmethod

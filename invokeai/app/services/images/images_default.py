@@ -349,6 +349,7 @@ class ImageService(ImageServiceABC):
         is_intermediate: Optional[bool] = None,
         board_id: Optional[str] = None,
         search_term: Optional[str] = None,
+        recursive: bool = True,
     ) -> ImageNamesResult:
         try:
             return self.__invoker.services.image_records.get_image_names(
@@ -359,6 +360,7 @@ class ImageService(ImageServiceABC):
                 is_intermediate=is_intermediate,
                 board_id=board_id,
                 search_term=search_term,
+                recursive=recursive,
             )
         except Exception as e:
             self.__invoker.services.logger.error("Problem getting image names")

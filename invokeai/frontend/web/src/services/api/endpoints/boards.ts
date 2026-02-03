@@ -100,13 +100,20 @@ export const boardsApi = api.injectEndpoints({
      * Boards Mutations
      */
 
-    createBoard: build.mutation<BoardDTO, CreateBoardArg>({
-      query: ({ board_name }) => ({
+    createBoard: build.mutation<BoardDTO, CreateBoardArg & { parent_board_id?: string | null }>({
+      query: ({ board_name, parent_board_id }) => ({
         url: buildBoardsUrl(),
         method: 'POST',
-        params: { board_name },
+        params: { board_name, ...(parent_board_id && { parent_board_id }) },
       }),
-      invalidatesTags: [{ type: 'Board', id: LIST_TAG }],
+      invalidatesTags: (result, error, arg) => {
+        const tags: ApiTagDescription[] = [{ type: 'Board', id: LIST_TAG }];
+        // Also invalidate parent's children if creating a subfolder
+        if (arg.parent_board_id) {
+          tags.push({ type: 'Board', id: `children-${arg.parent_board_id}` });
+        }
+        return tags;
+      },
     }),
 
     updateBoard: build.mutation<BoardDTO, UpdateBoardArg>({
@@ -168,7 +175,10 @@ export const boardsApi = api.injectEndpoints({
       },
     }),
 
-    moveBoard: build.mutation<BoardDTO, { board_id: string; move_request: BoardMoveRequest }>({
+    moveBoard: build.mutation<
+      BoardDTO,
+      { board_id: string; move_request: BoardMoveRequest; old_parent_id?: string | null }
+    >({
       query: ({ board_id, move_request }) => ({
         url: buildBoardsUrl(`${board_id}/move`),
         method: 'PATCH',
@@ -179,6 +189,8 @@ export const boardsApi = api.injectEndpoints({
         { type: 'Board', id: arg.board_id },
         { type: 'Board', id: `children-root` },
         { type: 'Board', id: `children-${arg.move_request.new_parent_id ?? 'root'}` },
+        // Invalidate old parent's children
+        { type: 'Board', id: `children-${arg.old_parent_id ?? 'root'}` },
       ],
     }),
 
@@ -201,6 +213,7 @@ export const boardsApi = api.injectEndpoints({
         { type: 'Board', id: arg.board_id },
         { type: 'Board', id: `unseen-${arg.board_id}` },
         { type: 'Board', id: LIST_TAG },
+        'ImageNameList', // Refreshes getImageNames to update unseen_image_names
       ],
     }),
   }),

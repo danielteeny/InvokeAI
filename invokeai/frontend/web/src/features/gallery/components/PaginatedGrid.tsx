@@ -420,7 +420,16 @@ export const PaginatedGrid = memo(() => {
 
       {/* Pagination controls */}
       {totalPages > 1 && (
-        <Flex justifyContent="center" alignItems="center" gap={2} py={2} px={4} bg="base.850" borderRadius="base" flexShrink={0}>
+        <Flex
+          justifyContent="center"
+          alignItems="center"
+          gap={2}
+          py={2}
+          px={4}
+          bg="base.850"
+          borderRadius="base"
+          flexShrink={0}
+        >
           <IconButton
             aria-label="Previous page"
             icon={<PiCaretLeftBold />}

@@ -11854,6 +11854,11 @@ export type components = {
              * @description Total number of images matching the query
              */
             total_count: number;
+            /**
+             * Unseen Image Names
+             * @description List of unseen image names
+             */
+            unseen_image_names?: string[];
         };
         /**
          * Add Image Noise
@@ -29221,6 +29226,8 @@ export interface operations {
                 starred_first?: boolean;
                 /** @description The term to search for */
                 search_term?: string | null;
+                /** @description Whether to include images from descendant boards (default true) */
+                recursive?: boolean;
             };
             header?: never;
             path?: never;

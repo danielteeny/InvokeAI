@@ -67,7 +67,7 @@ const ModelList = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
 
-const { data: allModelsData, isLoading: isLoadingAll } = useGetModelConfigsQuery();
+  const { data: allModelsData, isLoading: isLoadingAll } = useGetModelConfigsQuery();
   const { data: missingModelsData, isLoading: isLoadingMissing } = useGetMissingModelsQuery();
   const { data: loraCategories } = useListLoraCategoriesQuery();
   const [bulkDeleteModels] = useBulkDeleteModelsMutation();

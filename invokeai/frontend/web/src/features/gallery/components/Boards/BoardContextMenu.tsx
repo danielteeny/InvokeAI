@@ -2,7 +2,9 @@ import type { ContextMenuProps } from '@invoke-ai/ui-library';
 import { ContextMenu, MenuGroup, MenuItem, MenuList } from '@invoke-ai/ui-library';
 import { createSelector } from '@reduxjs/toolkit';
 import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
+import { $boardForAutoAssignment } from 'features/gallery/components/Boards/AutoAssignmentRulesModal';
 import { $boardToDelete } from 'features/gallery/components/Boards/DeleteBoardModal';
+import { $boardToMove } from 'features/gallery/components/Boards/MoveBoardModal';
 import { selectAutoAddBoardId, selectAutoAssignBoardOnClick } from 'features/gallery/store/gallerySelectors';
 import { autoAddBoardIdChanged } from 'features/gallery/store/gallerySlice';
 import { toast } from 'features/toast/toast';
@@ -13,12 +15,18 @@ import {
   PiArchiveFill,
   PiCheckBold,
   PiDownloadBold,
+  PiFolderBold,
+  PiFolderPlusBold,
   PiGearBold,
   PiPlusBold,
   PiTrashSimpleBold,
 } from 'react-icons/pi';
 import { useGetRulesForBoardQuery } from 'services/api/endpoints/boardAssignment';
-import { useMarkImagesAsSeenMutation, useUpdateBoardMutation } from 'services/api/endpoints/boards';
+import {
+  useCreateBoardMutation,
+  useMarkImagesAsSeenMutation,
+  useUpdateBoardMutation,
+} from 'services/api/endpoints/boards';
 import { useBulkDownloadImagesMutation } from 'services/api/endpoints/images';
 import { useBoardName } from 'services/api/hooks/useBoardName';
 import type { BoardDTO } from 'services/api/types';
@@ -39,6 +47,7 @@ const BoardContextMenu = ({ board, children }: Props) => {
 
   const [updateBoard] = useUpdateBoardMutation();
   const [markImagesAsSeen] = useMarkImagesAsSeenMutation();
+  const [createBoard, { isLoading: isCreatingSubfolder }] = useCreateBoardMutation();
   const { data: rules } = useGetRulesForBoardQuery(board.board_id);
   const rulesCount = rules?.length ?? 0;
   const unseenCount = board.unseen_count ?? 0;
@@ -96,6 +105,30 @@ const BoardContextMenu = ({ board, children }: Props) => {
     }
   }, [board.board_id, markImagesAsSeen, t]);
 
+  const handleManageAutoAssignmentRules = useCallback(() => {
+    $boardForAutoAssignment.set(board);
+  }, [board]);
+
+  const handleMoveTo = useCallback(() => {
+    $boardToMove.set(board);
+  }, [board]);
+
+  const handleAddSubfolder = useCallback(async () => {
+    try {
+      // Create a new board as a child of this board
+      await createBoard({ board_name: t('boards.newSubfolder'), parent_board_id: board.board_id }).unwrap();
+      toast({
+        status: 'success',
+        title: t('boards.subfolderCreated'),
+      });
+    } catch {
+      toast({
+        status: 'error',
+        title: t('boards.createSubfolderError'),
+      });
+    }
+  }, [board.board_id, createBoard, t]);
+
   const renderMenuFunc = useCallback(
     () => (
       <MenuList visibility="visible">
@@ -110,8 +143,16 @@ const BoardContextMenu = ({ board, children }: Props) => {
             {t('boards.downloadBoard')}
           </MenuItem>
 
-          <MenuItem icon={<PiGearBold />}>
+          <MenuItem icon={<PiGearBold />} onClick={handleManageAutoAssignmentRules}>
             {t('boards.manageAutoAssignmentRules')} {rulesCount > 0 && `(${rulesCount})`}
+          </MenuItem>
+
+          <MenuItem icon={<PiFolderBold />} onClick={handleMoveTo}>
+            {t('boards.moveTo')}
+          </MenuItem>
+
+          <MenuItem icon={<PiFolderPlusBold />} onClick={handleAddSubfolder} isDisabled={isCreatingSubfolder}>
+            {t('boards.addSubfolder')}
           </MenuItem>
 
           {unseenCount > 0 && (
@@ -145,6 +186,10 @@ const BoardContextMenu = ({ board, children }: Props) => {
       handleSetAutoAdd,
       t,
       handleBulkDownload,
+      handleManageAutoAssignmentRules,
+      handleMoveTo,
+      handleAddSubfolder,
+      isCreatingSubfolder,
       rulesCount,
       unseenCount,
       handleMarkAsSeen,

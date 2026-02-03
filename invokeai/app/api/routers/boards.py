@@ -5,7 +5,12 @@ from fastapi.routing import APIRouter
 from pydantic import BaseModel, Field
 
 from invokeai.app.api.dependencies import ApiDependencies
-from invokeai.app.services.board_records.board_records_common import BoardChanges, BoardMoveRequest, BoardRecordOrderBy
+from invokeai.app.services.board_records.board_records_common import (
+    BoardChanges,
+    BoardMoveRequest,
+    BoardRecordNotFoundException,
+    BoardRecordOrderBy,
+)
 from invokeai.app.services.board_records.board_records_sqlite import BoardRecordCircularReferenceException
 from invokeai.app.services.boards.boards_common import BoardDTO
 from invokeai.app.services.image_records.image_records_common import ImageCategory
@@ -34,11 +39,14 @@ class DeleteBoardResult(BaseModel):
 )
 async def create_board(
     board_name: str = Query(description="The name of the board to create", max_length=300),
+    parent_board_id: Optional[str] = Query(default=None, description="The ID of the parent board to create this board under"),
 ) -> BoardDTO:
-    """Creates a board"""
+    """Creates a board. Optionally specify a parent_board_id to create as a subfolder."""
     try:
-        result = ApiDependencies.invoker.services.boards.create(board_name=board_name)
+        result = ApiDependencies.invoker.services.boards.create(board_name=board_name, parent_board_id=parent_board_id)
         return result
+    except BoardRecordNotFoundException:
+        raise HTTPException(status_code=404, detail="Parent board not found")
     except Exception:
         raise HTTPException(status_code=500, detail="Failed to create board")
 
@@ -233,6 +241,8 @@ async def move_board(
             position=move_request.position,
         )
         return result
+    except BoardRecordNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except BoardRecordCircularReferenceException as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception:

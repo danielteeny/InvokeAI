@@ -110,7 +110,10 @@ export const boardAssignmentApi = api.injectEndpoints({
         url: buildBoardAssignmentUrl(`boards/${board_id}/rules`),
       }),
       providesTags: (result, error, board_id) => {
-        const tags: ApiTagDescription[] = [{ type: 'BoardAssignmentRule', id: `board-${board_id}` }, 'FetchOnReconnect'];
+        const tags: ApiTagDescription[] = [
+          { type: 'BoardAssignmentRule', id: `board-${board_id}` },
+          'FetchOnReconnect',
+        ];
         if (result) {
           tags.push(...result.map(({ rule_id }) => ({ type: 'BoardAssignmentRule' as const, id: rule_id })));
         }
@@ -127,10 +130,16 @@ export const boardAssignmentApi = api.injectEndpoints({
         method: 'POST',
         body: rule,
       }),
-      invalidatesTags: [{ type: 'BoardAssignmentRule', id: LIST_TAG }],
+      invalidatesTags: (result, error, arg) => [
+        { type: 'BoardAssignmentRule', id: LIST_TAG },
+        { type: 'BoardAssignmentRule', id: `board-${arg.target_board_id}` },
+      ],
     }),
 
-    updateBoardAssignmentRule: build.mutation<BoardAssignmentRule, { rule_id: string; changes: BoardAssignmentRuleUpdate }>({
+    updateBoardAssignmentRule: build.mutation<
+      BoardAssignmentRule,
+      { rule_id: string; changes: BoardAssignmentRuleUpdate }
+    >({
       query: ({ rule_id, changes }) => ({
         url: buildBoardAssignmentUrl(`rules/${rule_id}`),
         method: 'PATCH',
@@ -139,17 +148,20 @@ export const boardAssignmentApi = api.injectEndpoints({
       invalidatesTags: (result, error, arg) => [
         { type: 'BoardAssignmentRule', id: LIST_TAG },
         { type: 'BoardAssignmentRule', id: arg.rule_id },
+        // Invalidate both old and new target board if changed
+        ...(result ? [{ type: 'BoardAssignmentRule' as const, id: `board-${result.target_board_id}` }] : []),
       ],
     }),
 
-    deleteBoardAssignmentRule: build.mutation<void, string>({
-      query: (rule_id) => ({
+    deleteBoardAssignmentRule: build.mutation<void, { rule_id: string; board_id: string }>({
+      query: ({ rule_id }) => ({
         url: buildBoardAssignmentUrl(`rules/${rule_id}`),
         method: 'DELETE',
       }),
-      invalidatesTags: (result, error, rule_id) => [
+      invalidatesTags: (result, error, arg) => [
         { type: 'BoardAssignmentRule', id: LIST_TAG },
-        { type: 'BoardAssignmentRule', id: rule_id },
+        { type: 'BoardAssignmentRule', id: arg.rule_id },
+        { type: 'BoardAssignmentRule', id: `board-${arg.board_id}` },
       ],
     }),
 

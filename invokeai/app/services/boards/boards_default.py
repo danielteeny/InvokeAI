@@ -17,8 +17,9 @@ class BoardService(BoardServiceABC):
     def create(
         self,
         board_name: str,
+        parent_board_id: Optional[str] = None,
     ) -> BoardDTO:
-        board_record = self.__invoker.services.board_records.save(board_name)
+        board_record = self.__invoker.services.board_records.save(board_name, parent_board_id)
         return board_record_to_dto(board_record, None, 0, 0, unseen_count=0)
 
     def get_dto(self, board_id: str) -> BoardDTO:

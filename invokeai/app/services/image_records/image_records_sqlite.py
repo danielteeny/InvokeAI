@@ -377,6 +377,34 @@ class SqliteImageRecordStorage(ImageRecordStorageBase):
 
         return deserialize_image_record(dict(result))
 
+    def _get_descendant_board_ids(self, board_id: str) -> list[str]:
+        """Gets all descendant board IDs for a given board."""
+        with self._db.transaction() as cursor:
+            # First get the board's path
+            cursor.execute(
+                """--sql
+                SELECT path FROM boards WHERE board_id = ?;
+                """,
+                (board_id,),
+            )
+            result = cursor.fetchone()
+            if not result:
+                return []
+
+            board_path = result[0] or ""
+            descendant_path_prefix = f"{board_path}/{board_id}" if board_path else f"/{board_id}"
+
+            # Find all boards whose path starts with this prefix
+            cursor.execute(
+                """--sql
+                SELECT board_id FROM boards
+                WHERE path LIKE ? || '%';
+                """,
+                (descendant_path_prefix,),
+            )
+            descendants = cast(list[sqlite3.Row], cursor.fetchall())
+            return [r[0] for r in descendants]
+
     def get_image_names(
         self,
         starred_first: bool = True,
@@ -386,6 +414,7 @@ class SqliteImageRecordStorage(ImageRecordStorageBase):
         is_intermediate: Optional[bool] = None,
         board_id: Optional[str] = None,
         search_term: Optional[str] = None,
+        recursive: bool = True,
     ) -> ImageNamesResult:
         with self._db.transaction() as cursor:
             # Build query conditions (reused for both starred count and image names queries)
@@ -418,10 +447,21 @@ class SqliteImageRecordStorage(ImageRecordStorageBase):
                 AND board_images.board_id IS NULL
                 """
             elif board_id is not None:
-                query_conditions += """--sql
-                AND board_images.board_id = ?
-                """
-                query_params.append(board_id)
+                if recursive:
+                    # Include images from this board and all descendant boards
+                    descendant_ids = self._get_descendant_board_ids(board_id)
+                    all_board_ids = [board_id] + descendant_ids
+                    placeholders = ",".join("?" * len(all_board_ids))
+                    query_conditions += f"""--sql
+                    AND board_images.board_id IN ({placeholders})
+                    """
+                    query_params.extend(all_board_ids)
+                else:
+                    # Direct contents only
+                    query_conditions += """--sql
+                    AND board_images.board_id = ?
+                    """
+                    query_params.append(board_id)
 
             if search_term:
                 query_conditions += """--sql
@@ -465,6 +505,38 @@ class SqliteImageRecordStorage(ImageRecordStorageBase):
 
             cursor.execute(names_query, query_params)
             result = cast(list[sqlite3.Row], cursor.fetchall())
-        image_names = [row[0] for row in result]
+            image_names = [row[0] for row in result]
 
-        return ImageNamesResult(image_names=image_names, starred_count=starred_count, total_count=len(image_names))
+            # Get unseen image names for the current board (and descendants if recursive)
+            unseen_image_names: list[str] = []
+            if board_id is not None and board_id != "none":
+                if recursive:
+                    descendant_ids = self._get_descendant_board_ids(board_id)
+                    all_board_ids = [board_id] + descendant_ids
+                    placeholders = ",".join("?" * len(all_board_ids))
+                    unseen_query = f"""--sql
+                    SELECT images.image_name
+                    FROM images
+                    LEFT JOIN board_images ON board_images.image_name = images.image_name
+                    WHERE board_images.board_id IN ({placeholders}) AND board_images.is_seen = 0
+                    AND images.is_intermediate = FALSE
+                    """
+                    cursor.execute(unseen_query, all_board_ids)
+                else:
+                    unseen_query = """--sql
+                    SELECT images.image_name
+                    FROM images
+                    LEFT JOIN board_images ON board_images.image_name = images.image_name
+                    WHERE board_images.board_id = ? AND board_images.is_seen = 0
+                    AND images.is_intermediate = FALSE
+                    """
+                    cursor.execute(unseen_query, (board_id,))
+                unseen_result = cast(list[sqlite3.Row], cursor.fetchall())
+                unseen_image_names = [row[0] for row in unseen_result]
+
+        return ImageNamesResult(
+            image_names=image_names,
+            starred_count=starred_count,
+            total_count=len(image_names),
+            unseen_image_names=unseen_image_names,
+        )

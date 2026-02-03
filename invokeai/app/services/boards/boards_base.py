@@ -14,8 +14,9 @@ class BoardServiceABC(ABC):
     def create(
         self,
         board_name: str,
+        parent_board_id: Optional[str] = None,
     ) -> BoardDTO:
-        """Creates a board."""
+        """Creates a board. Optionally specify a parent board to create as a subfolder."""
         pass
 
     @abstractmethod

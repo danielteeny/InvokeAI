@@ -45,16 +45,45 @@ class SqliteBoardRecordStorage(BoardRecordStorageBase):
     def save(
         self,
         board_name: str,
+        parent_board_id: Optional[str] = None,
     ) -> BoardRecord:
         with self._db.transaction() as cursor:
             try:
                 board_id = uuid_string()
+
+                # Calculate path and position based on parent
+                if parent_board_id is None:
+                    path = ""
+                    # Get next position at root level
+                    cursor.execute(
+                        """--sql
+                        SELECT COALESCE(MAX(position), -1) + 1 as next_pos
+                        FROM boards
+                        WHERE parent_board_id IS NULL;
+                        """
+                    )
+                    position = cast(int, cursor.fetchone()[0])
+                else:
+                    # Verify parent exists and get its path
+                    parent = self.get(parent_board_id)
+                    path = f"{parent.path}/{parent_board_id}" if parent.path else f"/{parent_board_id}"
+                    # Get next position among siblings
+                    cursor.execute(
+                        """--sql
+                        SELECT COALESCE(MAX(position), -1) + 1 as next_pos
+                        FROM boards
+                        WHERE parent_board_id = ?;
+                        """,
+                        (parent_board_id,),
+                    )
+                    position = cast(int, cursor.fetchone()[0])
+
                 cursor.execute(
                     """--sql
-                    INSERT OR IGNORE INTO boards (board_id, board_name)
-                    VALUES (?, ?);
+                    INSERT OR IGNORE INTO boards (board_id, board_name, parent_board_id, path, position)
+                    VALUES (?, ?, ?, ?, ?);
                     """,
-                    (board_id, board_name),
+                    (board_id, board_name, parent_board_id, path, position),
                 )
             except sqlite3.Error as e:
                 raise BoardRecordSaveException from e

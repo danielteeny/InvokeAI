@@ -1,4 +1,15 @@
-import { Box, Button, Flex, FormControl, FormLabel, Input, Menu, MenuButton, MenuItem, MenuList } from '@invoke-ai/ui-library';
+import {
+  Box,
+  Button,
+  Flex,
+  FormControl,
+  FormLabel,
+  Input,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+} from '@invoke-ai/ui-library';
 import type { ChangeEvent, KeyboardEvent } from 'react';
 import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -134,12 +145,7 @@ export const LoraCategoryForm = memo(
               </MenuButton>
               <MenuList maxH="300px" overflowY="auto">
                 {CATEGORY_COLORS.map((c) => (
-                  <ColorMenuItem
-                    key={c.value}
-                    colorOption={c}
-                    isSelected={color === c.value}
-                    onSelect={setColor}
-                  />
+                  <ColorMenuItem key={c.value} colorOption={c} isSelected={color === c.value} onSelect={setColor} />
                 ))}
               </MenuList>
             </Menu>

@@ -159,6 +159,7 @@ class ImageServiceABC(ABC):
         is_intermediate: Optional[bool] = None,
         board_id: Optional[str] = None,
         search_term: Optional[str] = None,
+        recursive: bool = True,
     ) -> ImageNamesResult:
         """Gets ordered list of image names with metadata for optimistic updates."""
         pass

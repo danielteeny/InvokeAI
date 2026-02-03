@@ -143,7 +143,7 @@ const ModelListItem = ({ model }: ModelListItemProps) => {
             <Flex gap={1} mt={1}>
               <ModelBaseBadge base={model.base} />
               <ModelFormatBadge format={model.format} />
-{model.type === 'lora' && (
+              {model.type === 'lora' && (
                 <CategoryBadge category={(model as LoRAModelConfig & { category?: string | null }).category} />
               )}
               {isMissing && (

@@ -178,23 +178,46 @@ class BoardAssignmentService(BoardAssignmentServiceBase):
 
         return self.get_all_rules()
 
-    def evaluate(
+    def _get_child_board_ids(self, parent_board_id: Optional[str]) -> list[str]:
+        """Get all direct child board IDs for a parent (None = root level)."""
+        with self._db.transaction() as cursor:
+            if parent_board_id is None:
+                cursor.execute("SELECT board_id FROM boards WHERE parent_board_id IS NULL;")
+            else:
+                cursor.execute(
+                    "SELECT board_id FROM boards WHERE parent_board_id = ?;",
+                    (parent_board_id,),
+                )
+            return [row[0] for row in cursor.fetchall()]
+
+    def _get_rules_for_boards(self, board_ids: set[str], enabled_only: bool = True) -> list[BoardAssignmentRule]:
+        """Get all rules that target any of the given board IDs."""
+        all_rules = self.get_all_rules(enabled_only=enabled_only)
+        return [r for r in all_rules if r.target_board_id in board_ids]
+
+    def _evaluate_hierarchy_level(
         self,
-        metadata: Optional[dict[str, Any]],
-        strategy: ConflictResolutionStrategy = ConflictResolutionStrategy.PRIORITY_BASED,
-    ) -> EvaluationResult:
+        metadata: dict[str, Any],
+        parent_board_id: Optional[str],
+        strategy: ConflictResolutionStrategy,
+        all_matches: list[dict[str, Any]],
+        conflicts_at_levels: list[bool],
+    ) -> Optional[dict[str, Any]]:
         """
-        Evaluate all enabled rules against the given metadata.
-        Returns the board ID to assign (if any rule matches) and all matching rules.
-        The strategy parameter determines how conflicts are resolved when multiple rules match.
+        Evaluate rules at one level of the hierarchy and recurse into children.
+        Returns the deepest matching rule info, or None if no match at this level.
         """
-        if metadata is None:
-            return EvaluationResult(matched_board_id=None, matched_rule_id=None, matched_rule_name=None, all_matches=[])
+        # Get boards at this level
+        child_board_ids = set(self._get_child_board_ids(parent_board_id))
+        if not child_board_ids:
+            return None
 
-        rules = self.get_all_rules(enabled_only=True)
-        all_matches: list[dict[str, Any]] = []
+        # Get rules that target boards at this level
+        rules_at_level = self._get_rules_for_boards(child_board_ids, enabled_only=True)
 
-        for rule in rules:
+        # Evaluate each rule against metadata
+        level_matches: list[dict[str, Any]] = []
+        for rule in rules_at_level:
             if self._evaluate_rule(rule, metadata):
                 match_info = {
                     "rule_id": rule.rule_id,
@@ -203,17 +226,68 @@ class BoardAssignmentService(BoardAssignmentServiceBase):
                     "priority": rule.priority,
                     "condition_count": len(rule.conditions),
                 }
-                all_matches.append(match_info)
+                level_matches.append(match_info)
+                all_matches.append(match_info)  # Track all matches across levels
 
-        if not all_matches:
+        if not level_matches:
+            return None  # No match at this level
+
+        # Track if there's a conflict at this level (multiple matches at same level)
+        conflicts_at_levels.append(len(level_matches) > 1)
+
+        # Pick the best match at this level
+        best_at_level = self._resolve_conflict(level_matches, strategy)
+
+        # Now recurse: check if any children of the matched board also match
+        deeper_match = self._evaluate_hierarchy_level(
+            metadata=metadata,
+            parent_board_id=best_at_level["target_board_id"],
+            strategy=strategy,
+            all_matches=all_matches,
+            conflicts_at_levels=conflicts_at_levels,
+        )
+
+        # Return the deeper match if found, otherwise the match at this level
+        return deeper_match if deeper_match else best_at_level
+
+    def evaluate(
+        self,
+        metadata: Optional[dict[str, Any]],
+        strategy: ConflictResolutionStrategy = ConflictResolutionStrategy.PRIORITY_BASED,
+    ) -> EvaluationResult:
+        """
+        Evaluate rules using cascading hierarchical evaluation:
+        1. Evaluate rules for root-level boards, pick best match
+        2. If matched, evaluate rules for that board's children, pick best child
+        3. Recurse until no more matching children
+        """
+        if metadata is None:
+            return EvaluationResult(matched_board_id=None, matched_rule_id=None, matched_rule_name=None, all_matches=[])
+
+        all_matches: list[dict[str, Any]] = []
+        conflicts_at_levels: list[bool] = []
+
+        # Start cascading evaluation from root level
+        final_match = self._evaluate_hierarchy_level(
+            metadata=metadata,
+            parent_board_id=None,  # Start at root
+            strategy=strategy,
+            all_matches=all_matches,
+            conflicts_at_levels=conflicts_at_levels,
+        )
+
+        if final_match is None:
             return EvaluationResult(
-                matched_board_id=None, matched_rule_id=None, matched_rule_name=None, all_matches=[], has_conflict=False
+                matched_board_id=None,
+                matched_rule_id=None,
+                matched_rule_name=None,
+                all_matches=all_matches,
+                has_conflict=False,
             )
 
-        has_conflict = len(all_matches) > 1
-
-        # Select the best match based on strategy
-        best_match = self._resolve_conflict(all_matches, strategy)
+        # Only set has_conflict if there were multiple matches at ANY single hierarchy level
+        # Normal cascading (parent → child) is NOT a conflict
+        has_conflict = any(conflicts_at_levels)
 
         # If strategy is MANUAL_ONLY and there are multiple matches, return None for matched_board_id
         # to signal that the user should be prompted to choose
@@ -227,9 +301,9 @@ class BoardAssignmentService(BoardAssignmentServiceBase):
             )
 
         return EvaluationResult(
-            matched_board_id=best_match["target_board_id"],
-            matched_rule_id=best_match["rule_id"],
-            matched_rule_name=best_match["rule_name"],
+            matched_board_id=final_match["target_board_id"],
+            matched_rule_id=final_match["rule_id"],
+            matched_rule_name=final_match["rule_name"],
             all_matches=all_matches,
             has_conflict=has_conflict,
         )
@@ -321,7 +395,13 @@ class BoardAssignmentService(BoardAssignmentServiceBase):
                 for lora in loras:
                     lora_name = ""
                     if isinstance(lora, dict):
-                        lora_name = lora.get("name", "") or lora.get("key", "") or lora.get("model_name", "")
+                        # LoRA metadata has nested "model" structure
+                        model_info = lora.get("model", {})
+                        if isinstance(model_info, dict):
+                            lora_name = model_info.get("name", "") or model_info.get("key", "")
+                        # Fallback to flat structure for backwards compatibility
+                        if not lora_name:
+                            lora_name = lora.get("name", "") or lora.get("key", "") or lora.get("model_name", "")
                     elif isinstance(lora, str):
                         lora_name = lora
                     if self._match_string(lora_name, operator, value, case_sensitive):
@@ -333,7 +413,14 @@ class BoardAssignmentService(BoardAssignmentServiceBase):
                 loras = metadata.get("loras", [])
                 for lora in loras:
                     if isinstance(lora, dict):
-                        lora_category = lora.get("category", "")
+                        # Check nested model structure first
+                        model_info = lora.get("model", {})
+                        lora_category = ""
+                        if isinstance(model_info, dict):
+                            lora_category = model_info.get("category", "")
+                        # Fallback to flat structure
+                        if not lora_category:
+                            lora_category = lora.get("category", "")
                         if self._match_string(lora_category, operator, value, case_sensitive):
                             return True
                 return False

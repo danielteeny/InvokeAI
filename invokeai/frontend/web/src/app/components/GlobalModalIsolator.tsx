@@ -6,7 +6,9 @@ import { CropImageModal } from 'features/cropper/components/CropImageModal';
 import { DeleteImageModal } from 'features/deleteImageModal/components/DeleteImageModal';
 import { FullscreenDropzone } from 'features/dnd/FullscreenDropzone';
 import { DynamicPromptsModal } from 'features/dynamicPrompts/components/DynamicPromptsPreviewModal';
+import AutoAssignmentRulesModal from 'features/gallery/components/Boards/AutoAssignmentRulesModal';
 import DeleteBoardModal from 'features/gallery/components/Boards/DeleteBoardModal';
+import MoveBoardModal from 'features/gallery/components/Boards/MoveBoardModal';
 import { ImageContextMenu } from 'features/gallery/components/ContextMenu/ImageContextMenu';
 import { WorkflowLibraryModal } from 'features/nodes/components/sidePanel/workflow/WorkflowLibrary/WorkflowLibraryModal';
 import { CancelAllExceptCurrentQueueItemConfirmationAlertDialog } from 'features/queue/components/CancelAllExceptCurrentQueueItemConfirmationAlertDialog';
@@ -44,6 +46,8 @@ export const GlobalModalIsolator = memo(() => {
       <DeleteWorkflowDialog />
       <RefreshAfterResetModal />
       <DeleteBoardModal />
+      <AutoAssignmentRulesModal />
+      <MoveBoardModal />
       <GlobalImageHotkeys />
       <ImageContextMenu />
       <FullscreenDropzone />

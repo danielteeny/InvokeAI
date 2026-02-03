@@ -577,6 +577,7 @@ async def get_image_names(
     order_dir: SQLiteDirection = Query(default=SQLiteDirection.Descending, description="The order of sort"),
     starred_first: bool = Query(default=True, description="Whether to sort by starred images first"),
     search_term: Optional[str] = Query(default=None, description="The term to search for"),
+    recursive: bool = Query(default=True, description="Whether to include images from descendant boards"),
 ) -> ImageNamesResult:
     """Gets ordered list of image names with metadata for optimistic updates"""
 
@@ -589,6 +590,7 @@ async def get_image_names(
             is_intermediate=is_intermediate,
             board_id=board_id,
             search_term=search_term,
+            recursive=recursive,
         )
         return result
     except Exception:

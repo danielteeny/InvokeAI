@@ -20,11 +20,10 @@ interface BoardTreeNodeProps {
  */
 const BoardTreeNode = memo(({ board, depth, isSelected }: BoardTreeNodeProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { data: children, isLoading: isLoadingChildren } = useGetBoardChildrenQuery(board.board_id, {
-    skip: !isExpanded,
-  });
+  // Always fetch children to know if board has children (needed to show/hide expand button)
+  const { data: children, isLoading: isLoadingChildren } = useGetBoardChildrenQuery(board.board_id);
 
-  const hasChildren = children && children.length > 0;
+  const hasChildren = (children?.length ?? 0) > 0;
   const indentPx = depth * 16;
 
   const toggleExpanded = useCallback((e: MouseEvent) => {
@@ -44,7 +43,7 @@ const BoardTreeNode = memo(({ board, depth, isSelected }: BoardTreeNodeProps) =>
             <Flex w="full" h="full" alignItems="center" justifyContent="center">
               <Spinner size="xs" />
             </Flex>
-          ) : (
+          ) : hasChildren ? (
             <IconButton
               aria-label={isExpanded ? 'Collapse' : 'Expand'}
               icon={isExpanded ? <PiCaretDownBold /> : <PiCaretRightBold />}
@@ -54,7 +53,7 @@ const BoardTreeNode = memo(({ board, depth, isSelected }: BoardTreeNodeProps) =>
               opacity={0.5}
               _hover={{ opacity: 1 }}
             />
-          )}
+          ) : null}
         </Box>
 
         {/* Board item */}

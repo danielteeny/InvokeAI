@@ -73,7 +73,13 @@ export const ModelListBulkActions = memo(({ sx }: ModelListBulkActionsProps) => 
       return filtered.map((m) => m.key);
     }
 
-    const filteredModels = modelsFilter(modelConfigs, searchTerm, filteredModelType, selectedBaseModel, selectedLoraCategory);
+    const filteredModels = modelsFilter(
+      modelConfigs,
+      searchTerm,
+      filteredModelType,
+      selectedBaseModel,
+      selectedLoraCategory
+    );
     return filteredModels.map((m) => m.key);
   }, [allModelsData, missingModelsData, searchTerm, filteredModelType, selectedBaseModel, selectedLoraCategory]);
 

@@ -29,6 +29,7 @@ const selectGalleryQueryCategories = createSelector(selectGalleryView, (galleryV
 const selectGallerySearchTerm = createSelector(selectGallerySlice, (gallery) => gallery.searchTerm);
 const selectGalleryOrderDir = createSelector(selectGallerySlice, (gallery) => gallery.orderDir);
 const selectGalleryStarredFirst = createSelector(selectGallerySlice, (gallery) => gallery.starredFirst);
+export const selectRecursiveFolderView = createSelector(selectGallerySlice, (gallery) => gallery.recursiveFolderView);
 
 export const selectGetImageNamesQueryArgs = createMemoizedSelector(
   [
@@ -37,14 +38,16 @@ export const selectGetImageNamesQueryArgs = createMemoizedSelector(
     selectGallerySearchTerm,
     selectGalleryOrderDir,
     selectGalleryStarredFirst,
+    selectRecursiveFolderView,
   ],
-  (board_id, categories, search_term, order_dir, starred_first): GetImageNamesArgs => ({
+  (board_id, categories, search_term, order_dir, starred_first, recursive): GetImageNamesArgs => ({
     board_id,
     categories,
     search_term,
     order_dir,
     starred_first,
     is_intermediate: false,
+    recursive,
   })
 );
 
@@ -77,5 +80,4 @@ export const selectGalleryMode = createSelector(selectGallerySlice, (gallery) =>
 export const selectPaginationPageSize = createSelector(selectGallerySlice, (gallery) => gallery.paginationPageSize);
 export const selectCurrentPage = createSelector(selectGallerySlice, (gallery) => gallery.currentPage);
 
-// Folder hierarchy selectors
-export const selectRecursiveFolderView = createSelector(selectGallerySlice, (gallery) => gallery.recursiveFolderView);
+// Folder hierarchy selectors - selectRecursiveFolderView is defined earlier in the file
