@@ -4,7 +4,19 @@ import { imagesToChangeSelected, isModalOpenChanged } from 'features/changeBoard
 import { useDeleteImageModalApi } from 'features/deleteImageModal/store/state';
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PiDownloadSimpleBold, PiFoldersBold, PiStarBold, PiStarFill, PiTrashSimpleBold } from 'react-icons/pi';
+import {
+  PiDownloadSimpleBold,
+  PiEyeBold,
+  PiEyeSlashBold,
+  PiFoldersBold,
+  PiStarBold,
+  PiStarFill,
+  PiTrashSimpleBold,
+} from 'react-icons/pi';
+import {
+  useMarkImagesAsSeenByImageNamesMutation,
+  useMarkImagesAsUnseenByImageNamesMutation,
+} from 'services/api/endpoints/boards';
 import {
   useBulkDownloadImagesMutation,
   useStarImagesMutation,
@@ -20,6 +32,8 @@ const MultipleSelectionMenuItems = () => {
   const [starImages] = useStarImagesMutation();
   const [unstarImages] = useUnstarImagesMutation();
   const [bulkDownload] = useBulkDownloadImagesMutation();
+  const [markAsSeen] = useMarkImagesAsSeenByImageNamesMutation();
+  const [markAsUnseen] = useMarkImagesAsUnseenByImageNamesMutation();
 
   const handleChangeBoard = useCallback(() => {
     dispatch(imagesToChangeSelected(selection));
@@ -42,6 +56,14 @@ const MultipleSelectionMenuItems = () => {
     bulkDownload({ image_names: selection });
   }, [selection, bulkDownload]);
 
+  const handleMarkAsSeen = useCallback(() => {
+    markAsSeen({ image_names: selection });
+  }, [markAsSeen, selection]);
+
+  const handleMarkAsUnseen = useCallback(() => {
+    markAsUnseen({ image_names: selection });
+  }, [markAsUnseen, selection]);
+
   return (
     <>
       <MenuItem icon={<PiStarBold />} onClickCapture={handleUnstarSelection}>
@@ -49,6 +71,12 @@ const MultipleSelectionMenuItems = () => {
       </MenuItem>
       <MenuItem icon={<PiStarFill />} onClickCapture={handleStarSelection}>
         Star All
+      </MenuItem>
+      <MenuItem icon={<PiEyeBold />} onClickCapture={handleMarkAsSeen}>
+        {t('gallery.markAsSeen')}
+      </MenuItem>
+      <MenuItem icon={<PiEyeSlashBold />} onClickCapture={handleMarkAsUnseen}>
+        {t('gallery.markAsUnseen')}
       </MenuItem>
       <MenuItem icon={<PiDownloadSimpleBold />} onClickCapture={handleBulkDownload}>
         {t('gallery.downloadSelection')}

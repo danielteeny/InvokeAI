@@ -38,11 +38,9 @@ const BoardTreeNode = memo(({ board, depth, isSelected }: BoardTreeNodeProps) =>
         <Box w={`${indentPx}px`} flexShrink={0} />
 
         {/* Expand/collapse button */}
-        <Box w={6} h={6} flexShrink={0}>
+        <Flex w={6} h={12} flexShrink={0} alignItems="center" justifyContent="center">
           {isLoadingChildren ? (
-            <Flex w="full" h="full" alignItems="center" justifyContent="center">
-              <Spinner size="xs" />
-            </Flex>
+            <Spinner size="xs" />
           ) : hasChildren ? (
             <IconButton
               aria-label={isExpanded ? 'Collapse' : 'Expand'}
@@ -54,7 +52,7 @@ const BoardTreeNode = memo(({ board, depth, isSelected }: BoardTreeNodeProps) =>
               _hover={{ opacity: 1 }}
             />
           ) : null}
-        </Box>
+        </Flex>
 
         {/* Board item */}
         <Box flex={1}>

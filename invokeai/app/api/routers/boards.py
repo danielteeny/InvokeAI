@@ -258,6 +258,10 @@ class MarkSeenRequest(BaseModel):
     )
 
 
+class MarkSeenByImageNamesRequest(BaseModel):
+    image_names: list[str] = Field(description="The names of images to mark as seen.")
+
+
 @boards_router.post(
     "/{board_id}/mark_seen",
     operation_id="mark_images_as_seen",
@@ -280,6 +284,29 @@ async def mark_images_as_seen(
         raise HTTPException(status_code=500, detail="Failed to mark images as seen")
 
 
+@boards_router.post(
+    "/mark_seen_by_image_names",
+    operation_id="mark_images_as_seen_by_image_names",
+    responses={
+        200: {"description": "The images were marked as seen successfully"},
+    },
+    status_code=200,
+)
+async def mark_images_as_seen_by_image_names(
+    request: MarkSeenByImageNamesRequest = Body(description="The request containing image names to mark as seen"),
+) -> None:
+    """Marks specific images as seen regardless of which board they belong to.
+
+    This is useful when viewing images from multiple boards (e.g., in a parent board's recursive view).
+    """
+    try:
+        ApiDependencies.invoker.services.board_image_records.mark_images_as_seen(
+            board_id=None, image_names=request.image_names
+        )
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to mark images as seen")
+
+
 @boards_router.get(
     "/{board_id}/unseen_count",
     operation_id="get_unseen_count",
@@ -294,3 +321,55 @@ async def get_unseen_count(
         return count
     except Exception:
         raise HTTPException(status_code=500, detail="Failed to get unseen count")
+
+
+class MarkUnseenRequest(BaseModel):
+    image_names: Optional[list[str]] = Field(
+        default=None, description="The names of images to mark as unseen. If None, marks all images in the board as unseen."
+    )
+
+
+class MarkUnseenByImageNamesRequest(BaseModel):
+    image_names: list[str] = Field(description="The names of images to mark as unseen.")
+
+
+@boards_router.post(
+    "/{board_id}/mark_unseen",
+    operation_id="mark_images_as_unseen",
+    responses={
+        200: {"description": "The images were marked as unseen successfully"},
+    },
+    status_code=200,
+)
+async def mark_images_as_unseen(
+    board_id: str = Path(description="The id of the board"),
+    mark_unseen_request: Optional[MarkUnseenRequest] = Body(default=None, description="The mark unseen request"),
+) -> None:
+    """Marks images in a board as unseen. If image_names is None or not provided, marks all images as unseen."""
+    try:
+        image_names = mark_unseen_request.image_names if mark_unseen_request else None
+        ApiDependencies.invoker.services.board_image_records.mark_images_as_unseen(
+            board_id=board_id, image_names=image_names
+        )
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to mark images as unseen")
+
+
+@boards_router.post(
+    "/mark_unseen_by_image_names",
+    operation_id="mark_images_as_unseen_by_image_names",
+    responses={
+        200: {"description": "The images were marked as unseen successfully"},
+    },
+    status_code=200,
+)
+async def mark_images_as_unseen_by_image_names(
+    request: MarkUnseenByImageNamesRequest = Body(description="The request containing image names to mark as unseen"),
+) -> None:
+    """Marks specific images as unseen regardless of which board they belong to."""
+    try:
+        ApiDependencies.invoker.services.board_image_records.mark_images_as_unseen(
+            board_id=None, image_names=request.image_names
+        )
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to mark images as unseen")

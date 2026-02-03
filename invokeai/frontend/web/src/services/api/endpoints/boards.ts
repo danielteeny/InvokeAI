@@ -207,13 +207,58 @@ export const boardsApi = api.injectEndpoints({
       query: ({ board_id, image_names }) => ({
         url: buildBoardsUrl(`${board_id}/mark_seen`),
         method: 'POST',
-        body: image_names ? { image_names } : null,
+        ...(image_names && { body: { image_names } }),
       }),
       invalidatesTags: (result, error, arg) => [
         { type: 'Board', id: arg.board_id },
         { type: 'Board', id: `unseen-${arg.board_id}` },
         { type: 'Board', id: LIST_TAG },
         'ImageNameList', // Refreshes getImageNames to update unseen_image_names
+      ],
+    }),
+
+    // Mark images as seen by image names only (no board_id required)
+    // Useful when viewing images from multiple boards in a parent's recursive view
+    markImagesAsSeenByImageNames: build.mutation<void, { image_names: string[] }>({
+      query: ({ image_names }) => ({
+        url: buildBoardsUrl('mark_seen_by_image_names'),
+        method: 'POST',
+        body: { image_names },
+      }),
+      // Invalidate all Board caches since we don't know which board the image belongs to
+      // This ensures both parent and child board unseen counts are refreshed
+      invalidatesTags: () => [
+        { type: 'Board' },
+        'ImageNameList',
+      ],
+    }),
+
+    // Mark images as unseen endpoints
+    markImagesAsUnseen: build.mutation<void, { board_id: string; image_names?: string[] }>({
+      query: ({ board_id, image_names }) => ({
+        url: buildBoardsUrl(`${board_id}/mark_unseen`),
+        method: 'POST',
+        ...(image_names && { body: { image_names } }),
+      }),
+      invalidatesTags: (result, error, arg) => [
+        { type: 'Board', id: arg.board_id },
+        { type: 'Board', id: `unseen-${arg.board_id}` },
+        { type: 'Board', id: LIST_TAG },
+        'ImageNameList',
+      ],
+    }),
+
+    // Mark images as unseen by image names only (no board_id required)
+    markImagesAsUnseenByImageNames: build.mutation<void, { image_names: string[] }>({
+      query: ({ image_names }) => ({
+        url: buildBoardsUrl('mark_unseen_by_image_names'),
+        method: 'POST',
+        body: { image_names },
+      }),
+      // Invalidate all Board caches since we don't know which board the image belongs to
+      invalidatesTags: () => [
+        { type: 'Board' },
+        'ImageNameList',
       ],
     }),
   }),
@@ -234,4 +279,7 @@ export const {
   // Unseen notifications hooks
   useGetUnseenCountQuery,
   useMarkImagesAsSeenMutation,
+  useMarkImagesAsSeenByImageNamesMutation,
+  useMarkImagesAsUnseenMutation,
+  useMarkImagesAsUnseenByImageNamesMutation,
 } = boardsApi;

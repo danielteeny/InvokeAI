@@ -20,7 +20,7 @@ class BoardService(BoardServiceABC):
         parent_board_id: Optional[str] = None,
     ) -> BoardDTO:
         board_record = self.__invoker.services.board_records.save(board_name, parent_board_id)
-        return board_record_to_dto(board_record, None, 0, 0, unseen_count=0)
+        return board_record_to_dto(board_record, None, 0, 0, 0, 0, 0, 0)
 
     def get_dto(self, board_id: str) -> BoardDTO:
         board_record = self.__invoker.services.board_records.get(board_id)
@@ -29,10 +29,13 @@ class BoardService(BoardServiceABC):
             cover_image_name = cover_image.image_name
         else:
             cover_image_name = None
-        image_count = self.__invoker.services.board_image_records.get_image_count_for_board(board_id)
-        asset_count = self.__invoker.services.board_image_records.get_asset_count_for_board(board_id)
-        unseen_count = self.__invoker.services.board_image_records.get_unseen_count_for_board(board_id)
-        return board_record_to_dto(board_record, cover_image_name, image_count, asset_count, unseen_count)
+        image_count = self.__invoker.services.board_image_records.get_image_count_for_board(board_id, recursive=False)
+        asset_count = self.__invoker.services.board_image_records.get_asset_count_for_board(board_id, recursive=False)
+        image_count_recursive = self.__invoker.services.board_image_records.get_image_count_for_board(board_id, recursive=True)
+        asset_count_recursive = self.__invoker.services.board_image_records.get_asset_count_for_board(board_id, recursive=True)
+        unseen_count = self.__invoker.services.board_image_records.get_unseen_count_for_board(board_id, recursive=False)
+        unseen_count_recursive = self.__invoker.services.board_image_records.get_unseen_count_for_board(board_id, recursive=True)
+        return board_record_to_dto(board_record, cover_image_name, image_count, asset_count, image_count_recursive, asset_count_recursive, unseen_count, unseen_count_recursive)
 
     def update(
         self,
@@ -46,10 +49,13 @@ class BoardService(BoardServiceABC):
         else:
             cover_image_name = None
 
-        image_count = self.__invoker.services.board_image_records.get_image_count_for_board(board_id)
-        asset_count = self.__invoker.services.board_image_records.get_asset_count_for_board(board_id)
-        unseen_count = self.__invoker.services.board_image_records.get_unseen_count_for_board(board_id)
-        return board_record_to_dto(board_record, cover_image_name, image_count, asset_count, unseen_count)
+        image_count = self.__invoker.services.board_image_records.get_image_count_for_board(board_id, recursive=False)
+        asset_count = self.__invoker.services.board_image_records.get_asset_count_for_board(board_id, recursive=False)
+        image_count_recursive = self.__invoker.services.board_image_records.get_image_count_for_board(board_id, recursive=True)
+        asset_count_recursive = self.__invoker.services.board_image_records.get_asset_count_for_board(board_id, recursive=True)
+        unseen_count = self.__invoker.services.board_image_records.get_unseen_count_for_board(board_id, recursive=False)
+        unseen_count_recursive = self.__invoker.services.board_image_records.get_unseen_count_for_board(board_id, recursive=True)
+        return board_record_to_dto(board_record, cover_image_name, image_count, asset_count, image_count_recursive, asset_count_recursive, unseen_count, unseen_count_recursive)
 
     def delete(self, board_id: str) -> None:
         self.__invoker.services.board_records.delete(board_id)
@@ -73,10 +79,13 @@ class BoardService(BoardServiceABC):
             else:
                 cover_image_name = None
 
-            image_count = self.__invoker.services.board_image_records.get_image_count_for_board(r.board_id)
-            asset_count = self.__invoker.services.board_image_records.get_asset_count_for_board(r.board_id)
-            unseen_count = self.__invoker.services.board_image_records.get_unseen_count_for_board(r.board_id)
-            board_dtos.append(board_record_to_dto(r, cover_image_name, image_count, asset_count, unseen_count))
+            image_count = self.__invoker.services.board_image_records.get_image_count_for_board(r.board_id, recursive=False)
+            asset_count = self.__invoker.services.board_image_records.get_asset_count_for_board(r.board_id, recursive=False)
+            image_count_recursive = self.__invoker.services.board_image_records.get_image_count_for_board(r.board_id, recursive=True)
+            asset_count_recursive = self.__invoker.services.board_image_records.get_asset_count_for_board(r.board_id, recursive=True)
+            unseen_count = self.__invoker.services.board_image_records.get_unseen_count_for_board(r.board_id, recursive=False)
+            unseen_count_recursive = self.__invoker.services.board_image_records.get_unseen_count_for_board(r.board_id, recursive=True)
+            board_dtos.append(board_record_to_dto(r, cover_image_name, image_count, asset_count, image_count_recursive, asset_count_recursive, unseen_count, unseen_count_recursive))
 
         return OffsetPaginatedResults[BoardDTO](items=board_dtos, offset=offset, limit=limit, total=len(board_dtos))
 
@@ -92,10 +101,13 @@ class BoardService(BoardServiceABC):
             else:
                 cover_image_name = None
 
-            image_count = self.__invoker.services.board_image_records.get_image_count_for_board(r.board_id)
-            asset_count = self.__invoker.services.board_image_records.get_asset_count_for_board(r.board_id)
-            unseen_count = self.__invoker.services.board_image_records.get_unseen_count_for_board(r.board_id)
-            board_dtos.append(board_record_to_dto(r, cover_image_name, image_count, asset_count, unseen_count))
+            image_count = self.__invoker.services.board_image_records.get_image_count_for_board(r.board_id, recursive=False)
+            asset_count = self.__invoker.services.board_image_records.get_asset_count_for_board(r.board_id, recursive=False)
+            image_count_recursive = self.__invoker.services.board_image_records.get_image_count_for_board(r.board_id, recursive=True)
+            asset_count_recursive = self.__invoker.services.board_image_records.get_asset_count_for_board(r.board_id, recursive=True)
+            unseen_count = self.__invoker.services.board_image_records.get_unseen_count_for_board(r.board_id, recursive=False)
+            unseen_count_recursive = self.__invoker.services.board_image_records.get_unseen_count_for_board(r.board_id, recursive=True)
+            board_dtos.append(board_record_to_dto(r, cover_image_name, image_count, asset_count, image_count_recursive, asset_count_recursive, unseen_count, unseen_count_recursive))
 
         return board_dtos
 
@@ -105,10 +117,13 @@ class BoardService(BoardServiceABC):
         """Helper to convert a board record to a DTO with cover image and counts."""
         cover_image = self.__invoker.services.image_records.get_most_recent_image_for_board(board_record.board_id)
         cover_image_name = cover_image.image_name if cover_image else None
-        image_count = self.__invoker.services.board_image_records.get_image_count_for_board(board_record.board_id)
-        asset_count = self.__invoker.services.board_image_records.get_asset_count_for_board(board_record.board_id)
-        unseen_count = self.__invoker.services.board_image_records.get_unseen_count_for_board(board_record.board_id)
-        return board_record_to_dto(board_record, cover_image_name, image_count, asset_count, unseen_count)
+        image_count = self.__invoker.services.board_image_records.get_image_count_for_board(board_record.board_id, recursive=False)
+        asset_count = self.__invoker.services.board_image_records.get_asset_count_for_board(board_record.board_id, recursive=False)
+        image_count_recursive = self.__invoker.services.board_image_records.get_image_count_for_board(board_record.board_id, recursive=True)
+        asset_count_recursive = self.__invoker.services.board_image_records.get_asset_count_for_board(board_record.board_id, recursive=True)
+        unseen_count = self.__invoker.services.board_image_records.get_unseen_count_for_board(board_record.board_id, recursive=False)
+        unseen_count_recursive = self.__invoker.services.board_image_records.get_unseen_count_for_board(board_record.board_id, recursive=True)
+        return board_record_to_dto(board_record, cover_image_name, image_count, asset_count, image_count_recursive, asset_count_recursive, unseen_count, unseen_count_recursive)
 
     def get_children(self, parent_id: Optional[str]) -> list[BoardDTO]:
         """Gets direct children of a board. Pass None to get root-level boards."""

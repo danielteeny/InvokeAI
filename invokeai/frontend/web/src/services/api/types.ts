@@ -79,7 +79,10 @@ export type BoardDTO = S['BoardDTO'] & {
   parent_board_id?: string | null;
   position?: number;
   path?: string;
+  image_count_recursive?: number;
+  asset_count_recursive?: number;
   unseen_count?: number;
+  unseen_count_recursive?: number;
 };
 export type OffsetPaginatedResults_ImageDTO_ = S['OffsetPaginatedResults_ImageDTO_'];
 

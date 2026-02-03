@@ -19,7 +19,6 @@ import { GalleryImageGrid } from './GalleryImageGrid';
 import { GallerySettingsPopover } from './GallerySettingsPopover/GallerySettingsPopover';
 import { GalleryUploadButton } from './GalleryUploadButton';
 import { GallerySearch } from './ImageGrid/GallerySearch';
-import { RecursiveViewToggle } from './RecursiveViewToggle';
 
 const COLLAPSE_STYLES: CSSProperties = { flexShrink: 0, minHeight: 0, width: '100%' };
 
@@ -89,7 +88,6 @@ export const GalleryPanel = memo(() => {
         </ButtonGroup>
         <Flex flexGrow={1} flexBasis={0} justifyContent="flex-end">
           <GalleryUploadButton />
-          <RecursiveViewToggle />
           <GallerySettingsPopover />
           <IconButton
             size="sm"

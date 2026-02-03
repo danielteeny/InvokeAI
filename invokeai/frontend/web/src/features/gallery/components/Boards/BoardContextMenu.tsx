@@ -15,6 +15,7 @@ import {
   PiArchiveFill,
   PiCheckBold,
   PiDownloadBold,
+  PiEyeSlashBold,
   PiFolderBold,
   PiFolderPlusBold,
   PiGearBold,
@@ -25,6 +26,7 @@ import { useGetRulesForBoardQuery } from 'services/api/endpoints/boardAssignment
 import {
   useCreateBoardMutation,
   useMarkImagesAsSeenMutation,
+  useMarkImagesAsUnseenMutation,
   useUpdateBoardMutation,
 } from 'services/api/endpoints/boards';
 import { useBulkDownloadImagesMutation } from 'services/api/endpoints/images';
@@ -47,10 +49,12 @@ const BoardContextMenu = ({ board, children }: Props) => {
 
   const [updateBoard] = useUpdateBoardMutation();
   const [markImagesAsSeen] = useMarkImagesAsSeenMutation();
+  const [markImagesAsUnseen] = useMarkImagesAsUnseenMutation();
   const [createBoard, { isLoading: isCreatingSubfolder }] = useCreateBoardMutation();
   const { data: rules } = useGetRulesForBoardQuery(board.board_id);
   const rulesCount = rules?.length ?? 0;
   const unseenCount = board.unseen_count ?? 0;
+  const totalImageCount = board.image_count + board.asset_count;
 
   const isSelectedForAutoAdd = useAppSelector(selectIsSelectedForAutoAdd);
   const boardName = useBoardName(board.board_id);
@@ -104,6 +108,21 @@ const BoardContextMenu = ({ board, children }: Props) => {
       });
     }
   }, [board.board_id, markImagesAsSeen, t]);
+
+  const handleMarkAsUnseen = useCallback(async () => {
+    try {
+      await markImagesAsUnseen({ board_id: board.board_id }).unwrap();
+      toast({
+        status: 'success',
+        title: t('boards.markedAsUnseen'),
+      });
+    } catch {
+      toast({
+        status: 'error',
+        title: t('boards.unableToMarkAsUnseen'),
+      });
+    }
+  }, [board.board_id, markImagesAsUnseen, t]);
 
   const handleManageAutoAssignmentRules = useCallback(() => {
     $boardForAutoAssignment.set(board);
@@ -161,6 +180,12 @@ const BoardContextMenu = ({ board, children }: Props) => {
             </MenuItem>
           )}
 
+          {totalImageCount > 0 && unseenCount < totalImageCount && (
+            <MenuItem icon={<PiEyeSlashBold />} onClick={handleMarkAsUnseen}>
+              {t('boards.markAllAsUnseen')}
+            </MenuItem>
+          )}
+
           {board.archived && (
             <MenuItem icon={<PiArchiveBold />} onClick={handleUnarchive}>
               {t('boards.unarchiveBoard')}
@@ -192,7 +217,9 @@ const BoardContextMenu = ({ board, children }: Props) => {
       isCreatingSubfolder,
       rulesCount,
       unseenCount,
+      totalImageCount,
       handleMarkAsSeen,
+      handleMarkAsUnseen,
       board.archived,
       handleUnarchive,
       handleArchive,

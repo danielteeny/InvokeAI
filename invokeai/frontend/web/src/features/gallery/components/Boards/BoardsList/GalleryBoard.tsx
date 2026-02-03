@@ -12,6 +12,7 @@ import { BoardTooltip } from 'features/gallery/components/Boards/BoardsList/Boar
 import {
   selectAutoAddBoardId,
   selectAutoAssignBoardOnClick,
+  selectRecursiveFolderView,
   selectSelectedBoardId,
 } from 'features/gallery/store/gallerySelectors';
 import { autoAddBoardIdChanged, boardIdSelected } from 'features/gallery/store/gallerySlice';
@@ -36,6 +37,21 @@ const GalleryBoard = ({ board, isSelected }: GalleryBoardProps) => {
   const autoAddBoardId = useAppSelector(selectAutoAddBoardId);
   const autoAssignBoardOnClick = useAppSelector(selectAutoAssignBoardOnClick);
   const selectedBoardId = useAppSelector(selectSelectedBoardId);
+  const recursiveFolderView = useAppSelector(selectRecursiveFolderView);
+
+  // Show recursive counts when in recursive view, otherwise show direct counts
+  const displayedUnseenCount = recursiveFolderView
+    ? (board.unseen_count_recursive ?? board.unseen_count ?? 0)
+    : (board.unseen_count ?? 0);
+
+  const displayedImageCount = recursiveFolderView
+    ? (board.image_count_recursive ?? board.image_count)
+    : board.image_count;
+
+  const displayedAssetCount = recursiveFolderView
+    ? (board.asset_count_recursive ?? board.asset_count)
+    : board.asset_count;
+
   const onClick = useCallback(() => {
     if (selectedBoardId !== board.board_id) {
       dispatch(boardIdSelected({ boardId: board.board_id }));
@@ -52,10 +68,10 @@ const GalleryBoard = ({ board, isSelected }: GalleryBoardProps) => {
 
   const boardCounts = useMemo(
     () => ({
-      image_count: board.image_count,
-      asset_count: board.asset_count,
+      image_count: displayedImageCount,
+      asset_count: displayedAssetCount,
     }),
-    [board]
+    [displayedImageCount, displayedAssetCount]
   );
 
   return (
@@ -84,20 +100,36 @@ const GalleryBoard = ({ board, isSelected }: GalleryBoardProps) => {
               w="full"
               h="full"
             >
-              <CoverImage board={board} />
+              <Box position="relative">
+                <CoverImage board={board} />
+                {displayedUnseenCount > 0 && (
+                  <Badge
+                    position="absolute"
+                    top="50%"
+                    left="50%"
+                    transform="translate(-50%, -50%)"
+                    bg="invokeYellow.500"
+                    color="blackAlpha.800"
+                    fontSize="9px"
+                    fontWeight="bold"
+                    px={1}
+                    py={0}
+                    borderRadius="full"
+                    lineHeight="short"
+                    minH="auto"
+                  >
+                    +{displayedUnseenCount}
+                  </Badge>
+                )}
+              </Box>
               <Flex flex={1}>
                 <BoardEditableTitle board={board} isSelected={isSelected} />
               </Flex>
               {autoAddBoardId === board.board_id && <AutoAddBadge />}
               {board.archived && <Icon as={PiArchiveBold} fill="base.300" />}
-              {(board.unseen_count ?? 0) > 0 && (
-                <Badge colorScheme="invokeYellow" variant="solid" fontSize="xs" px={1.5} minW={5} textAlign="center">
-                  +{board.unseen_count}
-                </Badge>
-              )}
               <Flex justifyContent="flex-end">
                 <Text variant="subtext">
-                  {board.image_count} | {board.asset_count}
+                  {displayedImageCount} | {displayedAssetCount}
                 </Text>
               </Flex>
             </Flex>

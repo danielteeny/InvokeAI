@@ -3,10 +3,10 @@ import { useAppSelector } from 'app/store/storeHooks';
 import { setComparisonImageDndTarget } from 'features/dnd/dnd';
 import { DndDropTarget } from 'features/dnd/DndDropTarget';
 import { CurrentImagePreview } from 'features/gallery/components/ImageViewer/CurrentImagePreview';
-import { selectLastSelectedItem, selectSelectedBoardId } from 'features/gallery/store/gallerySelectors';
+import { selectLastSelectedItem } from 'features/gallery/store/gallerySelectors';
 import { memo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useMarkImagesAsSeenMutation } from 'services/api/endpoints/boards';
+import { useMarkImagesAsSeenByImageNamesMutation } from 'services/api/endpoints/boards';
 import { useImageDTO } from 'services/api/endpoints/images';
 
 import { ImageViewerToolbar } from './ImageViewerToolbar';
@@ -18,15 +18,16 @@ export const ImageViewer = memo(() => {
 
   const lastSelectedItem = useAppSelector(selectLastSelectedItem);
   const lastSelectedImageDTO = useImageDTO(lastSelectedItem ?? null);
-  const boardId = useAppSelector(selectSelectedBoardId);
-  const [markAsSeen] = useMarkImagesAsSeenMutation();
+  const [markAsSeen] = useMarkImagesAsSeenByImageNamesMutation();
 
   // Mark image as seen when selection changes (covers click + keyboard nav)
+  // Uses the new endpoint that marks by image name regardless of which board it's in,
+  // which fixes the issue where images weren't marked as seen when viewing in a parent's recursive view
   useEffect(() => {
-    if (lastSelectedItem && boardId && boardId !== 'none') {
-      markAsSeen({ board_id: boardId, image_names: [lastSelectedItem] });
+    if (lastSelectedItem) {
+      markAsSeen({ image_names: [lastSelectedItem] });
     }
-  }, [lastSelectedItem, boardId, markAsSeen]);
+  }, [lastSelectedItem, markAsSeen]);
 
   return (
     <Flex flexDir="column" w="full" h="full" overflow="hidden" gap={2} position="relative">

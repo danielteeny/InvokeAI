@@ -5,6 +5,7 @@ import { useDisclosure } from 'common/hooks/useBoolean';
 import { BoardsListWrapper } from 'features/gallery/components/Boards/BoardsList/BoardsListWrapper';
 import { BoardsSearch } from 'features/gallery/components/Boards/BoardsList/BoardsSearch';
 import { BoardsSettingsPopover } from 'features/gallery/components/Boards/BoardsSettingsPopover';
+import { RecursiveViewToggle } from 'features/gallery/components/RecursiveViewToggle';
 import { selectBoardSearchText } from 'features/gallery/store/gallerySelectors';
 import { boardSearchTextChanged } from 'features/gallery/store/gallerySlice';
 import { useAutoLayoutContext } from 'features/ui/layouts/auto-layout-context';
@@ -62,6 +63,7 @@ export const BoardsPanel = memo(() => {
           </Button>
         </Flex>
         <Flex flexGrow={1} flexBasis={0} justifyContent="flex-end">
+          <RecursiveViewToggle />
           <BoardsSettingsPopover />
           <IconButton
             size="sm"
