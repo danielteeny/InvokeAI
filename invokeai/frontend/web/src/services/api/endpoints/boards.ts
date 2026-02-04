@@ -225,9 +225,9 @@ export const boardsApi = api.injectEndpoints({
         method: 'POST',
         body: { image_names },
       }),
-      // Invalidate all Board caches since we don't know which board the image belongs to
-      // This ensures both parent and child board unseen counts are refreshed
-      invalidatesTags: () => [{ type: 'Board' }, 'ImageNameList'],
+      // Only invalidate Board list for unseen count updates
+      // Don't invalidate ImageNameList - marking seen doesn't change which images exist
+      invalidatesTags: () => [{ type: 'Board', id: LIST_TAG }],
     }),
 
     // Mark images as unseen endpoints
@@ -252,8 +252,9 @@ export const boardsApi = api.injectEndpoints({
         method: 'POST',
         body: { image_names },
       }),
-      // Invalidate all Board caches since we don't know which board the image belongs to
-      invalidatesTags: () => [{ type: 'Board' }, 'ImageNameList'],
+      // Only invalidate Board list for unseen count updates
+      // Don't invalidate ImageNameList - marking unseen doesn't change which images exist
+      invalidatesTags: () => [{ type: 'Board', id: LIST_TAG }],
     }),
   }),
 });
