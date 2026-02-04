@@ -2,7 +2,8 @@ import type { RootState } from 'app/store/store';
 import { getPrefixedId } from 'features/controlLayers/konva/util';
 import { zModelIdentifierField } from 'features/nodes/types/common';
 import type { Graph } from 'features/nodes/util/graph/generation/Graph';
-import type { Invocation, S } from 'services/api/types';
+import { modelConfigsAdapterSelectors, selectModelConfigsQuery } from 'services/api/endpoints/models';
+import type { Invocation, LoRAModelConfig, S } from 'services/api/types';
 
 export const addSDXLLoRAs = (
   state: RootState,
@@ -13,7 +14,20 @@ export const addSDXLLoRAs = (
   posCond: Invocation<'sdxl_compel_prompt'>,
   negCond: Invocation<'sdxl_compel_prompt'>
 ): void => {
-  const enabledLoRAs = state.loras.loras.filter((l) => l.isEnabled && l.model.base === 'sdxl');
+  // Look up actual model configs to get real base model (needed for preset-loaded LoRAs)
+  const modelConfigsResult = selectModelConfigsQuery(state);
+
+  const enabledLoRAs = state.loras.loras.filter((l) => {
+    if (!l.isEnabled) {
+      return false;
+    }
+    // Look up actual LoRA config to get real base model
+    const loraConfig = modelConfigsResult.data
+      ? (modelConfigsAdapterSelectors.selectById(modelConfigsResult.data, l.model.key) as LoRAModelConfig | undefined)
+      : undefined;
+    const loraBase = loraConfig?.base ?? l.model.base;
+    return loraBase === 'sdxl';
+  });
   const loraCount = enabledLoRAs.length;
 
   if (loraCount === 0) {

@@ -2,7 +2,8 @@ import type { RootState } from 'app/store/store';
 import { getPrefixedId } from 'features/controlLayers/konva/util';
 import { zModelIdentifierField } from 'features/nodes/types/common';
 import type { Graph } from 'features/nodes/util/graph/generation/Graph';
-import type { Invocation, S } from 'services/api/types';
+import { modelConfigsAdapterSelectors, selectModelConfigsQuery } from 'services/api/endpoints/models';
+import type { Invocation, LoRAModelConfig, S } from 'services/api/types';
 
 /**
  * Add LoRAs for Flux 2 Klein models.
@@ -15,7 +16,20 @@ export const addFlux2LoRAs = (
   denoise: Invocation<'flux2_denoise'>,
   modelLoader: Invocation<'flux2_klein_model_loader'>
 ): void => {
-  const enabledLoRAs = state.loras.loras.filter((l) => l.isEnabled && l.model.base === 'flux2');
+  // Look up actual model configs to get real base model (needed for preset-loaded LoRAs)
+  const modelConfigsResult = selectModelConfigsQuery(state);
+
+  const enabledLoRAs = state.loras.loras.filter((l) => {
+    if (!l.isEnabled) {
+      return false;
+    }
+    // Look up actual LoRA config to get real base model
+    const loraConfig = modelConfigsResult.data
+      ? (modelConfigsAdapterSelectors.selectById(modelConfigsResult.data, l.model.key) as LoRAModelConfig | undefined)
+      : undefined;
+    const loraBase = loraConfig?.base ?? l.model.base;
+    return loraBase === 'flux2';
+  });
 
   if (enabledLoRAs.length === 0) {
     return;
@@ -73,9 +87,20 @@ export const addFLUXLoRAs = (
   modelLoader: Invocation<'flux_model_loader'>,
   fluxTextEncoder: Invocation<'flux_text_encoder'>
 ): void => {
-  const enabledLoRAs = state.loras.loras.filter(
-    (l) => l.isEnabled && (l.model.base === 'flux' || l.model.base === 'flux2')
-  );
+  // Look up actual model configs to get real base model (needed for preset-loaded LoRAs)
+  const modelConfigsResult = selectModelConfigsQuery(state);
+
+  const enabledLoRAs = state.loras.loras.filter((l) => {
+    if (!l.isEnabled) {
+      return false;
+    }
+    // Look up actual LoRA config to get real base model
+    const loraConfig = modelConfigsResult.data
+      ? (modelConfigsAdapterSelectors.selectById(modelConfigsResult.data, l.model.key) as LoRAModelConfig | undefined)
+      : undefined;
+    const loraBase = loraConfig?.base ?? l.model.base;
+    return loraBase === 'flux' || loraBase === 'flux2';
+  });
   const loraCount = enabledLoRAs.length;
 
   if (loraCount === 0) {

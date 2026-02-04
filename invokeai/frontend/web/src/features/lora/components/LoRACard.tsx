@@ -83,9 +83,9 @@ const LoRAContent = memo(({ lora }: { lora: LoRA }) => {
             >
               <Icon as={PiDotsSixVerticalBold} boxSize={4} />
             </Flex>
-            <Tooltip label={loraConfig?.name ?? lora.model.key} placement="top">
+            <Tooltip label={lora.model.name ?? loraConfig?.name ?? lora.model.key} placement="top">
               <Text noOfLines={1} wordBreak="break-all" color={lora.isEnabled ? 'base.200' : 'base.500'}>
-                {loraConfig?.name ?? lora.model.key.substring(0, 8)}
+                {lora.model.name ?? loraConfig?.name ?? lora.model.key.substring(0, 8)}
               </Text>
             </Tooltip>
           </Flex>
