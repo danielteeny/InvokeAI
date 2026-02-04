@@ -9,11 +9,9 @@ import { assert } from 'tsafe';
 import {
   type BoardId,
   type ComparisonMode,
-  type GalleryMode,
   type GalleryState,
   type GalleryView,
   type OrderDir,
-  type PaginationPageSize,
   zGalleryState,
 } from './types';
 
@@ -36,10 +34,6 @@ const getInitialState = (): GalleryState => ({
   shouldShowArchivedBoards: false,
   boardsListOrderBy: 'created_at',
   boardsListOrderDir: 'DESC',
-  // Performance mode settings - default to infinite scroll
-  galleryMode: 'infinite-scroll',
-  paginationPageSize: 50,
-  currentPage: 0,
   // Folder hierarchy settings - default to Lightroom-style (show all descendants)
   recursiveFolderView: true,
 });
@@ -149,20 +143,6 @@ const slice = createSlice({
     boardsListOrderDirChanged: (state, action: PayloadAction<OrderDir>) => {
       state.boardsListOrderDir = action.payload;
     },
-    // Performance mode actions
-    galleryModeChanged: (state, action: PayloadAction<GalleryMode>) => {
-      state.galleryMode = action.payload;
-      // Reset to first page when switching modes
-      state.currentPage = 0;
-    },
-    paginationPageSizeChanged: (state, action: PayloadAction<PaginationPageSize>) => {
-      state.paginationPageSize = action.payload;
-      // Reset to first page when changing page size
-      state.currentPage = 0;
-    },
-    currentPageChanged: (state, action: PayloadAction<number>) => {
-      state.currentPage = Math.max(0, action.payload);
-    },
     // Folder hierarchy actions
     recursiveFolderViewChanged: (state, action: PayloadAction<boolean>) => {
       state.recursiveFolderView = action.payload;
@@ -192,10 +172,6 @@ export const {
   searchTermChanged,
   boardsListOrderByChanged,
   boardsListOrderDirChanged,
-  // Performance mode actions
-  galleryModeChanged,
-  paginationPageSizeChanged,
-  currentPageChanged,
   // Folder hierarchy actions
   recursiveFolderViewChanged,
 } = slice.actions;

@@ -12,11 +12,10 @@ import {
 } from '@invoke-ai/ui-library';
 import AlwaysShowImageSizeCheckbox from 'features/gallery/components/GallerySettingsPopover/AlwaysShowImageSizeCheckbox';
 import AutoSwitchCheckbox from 'features/gallery/components/GallerySettingsPopover/AutoSwitchCheckbox';
-import GalleryModeCombobox from 'features/gallery/components/GallerySettingsPopover/GalleryModeCombobox';
 import ImageMinimumWidthSlider from 'features/gallery/components/GallerySettingsPopover/ImageMinimumWidthSlider';
-import PageSizeCombobox from 'features/gallery/components/GallerySettingsPopover/PageSizeCombobox';
 import ShowStarredFirstCheckbox from 'features/gallery/components/GallerySettingsPopover/ShowStarredFirstCheckbox';
 import SortDirectionCombobox from 'features/gallery/components/GallerySettingsPopover/SortDirectionCombobox';
+import UsePagedGalleryViewCheckbox from 'features/gallery/components/GallerySettingsPopover/UsePagedGalleryViewCheckbox';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PiGearSixFill } from 'react-icons/pi';
@@ -48,6 +47,7 @@ export const GallerySettingsPopover = memo(() => {
               <Divider />
 
               <ImageMinimumWidthSlider />
+              <UsePagedGalleryViewCheckbox />
               <AutoSwitchCheckbox />
               <AlwaysShowImageSizeCheckbox />
 
@@ -55,11 +55,6 @@ export const GallerySettingsPopover = memo(() => {
 
               <ShowStarredFirstCheckbox />
               <SortDirectionCombobox />
-
-              <Divider />
-
-              <GalleryModeCombobox />
-              <PageSizeCombobox />
             </Flex>
           </PopoverBody>
         </PopoverContent>

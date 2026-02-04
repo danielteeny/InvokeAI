@@ -88,6 +88,7 @@ class ModelRecordChanges(BaseModelExcludeNull):
     default_settings: Optional[MainModelDefaultSettings | LoraModelDefaultSettings | ControlAdapterDefaultSettings] = (
         Field(description="Default settings for this model", default=None)
     )
+    cpu_only: Optional[bool] = Field(description="Whether this model should run on CPU only", default=None)
 
     # LoRA-specific changes
     category: Optional[str] = Field(

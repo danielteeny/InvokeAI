@@ -20,6 +20,9 @@ const slice = createSlice({
     setShouldShowProgressInViewer: (state, action: PayloadAction<UIState['shouldShowProgressInViewer']>) => {
       state.shouldShowProgressInViewer = action.payload;
     },
+    setShouldUsePagedGalleryView: (state, action: PayloadAction<UIState['shouldUsePagedGalleryView']>) => {
+      state.shouldUsePagedGalleryView = action.payload;
+    },
     accordionStateChanged: (
       state,
       action: PayloadAction<{
@@ -80,6 +83,7 @@ export const {
   setActiveTab,
   setShouldShowItemDetails,
   setShouldShowProgressInViewer,
+  setShouldUsePagedGalleryView,
   accordionStateChanged,
   expanderStateChanged,
   shouldShowNotificationChanged,
@@ -115,6 +119,7 @@ export const uiSliceConfig: SliceConfig<typeof slice> = {
       }
       if (state._version === 4) {
         state.layoutMode = 'auto';
+        state.shouldUsePagedGalleryView = false;
         state._version = 5;
       }
       return zUIState.parse(state);

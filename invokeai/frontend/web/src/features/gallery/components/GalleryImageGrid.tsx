@@ -6,7 +6,6 @@ import { useRangeBasedImageFetching } from 'features/gallery/hooks/useRangeBased
 import type { selectGetImageNamesQueryArgs } from 'features/gallery/store/gallerySelectors';
 import {
   selectGalleryImageMinimumWidth,
-  selectGalleryMode,
   selectImageToCompare,
   selectLastSelectedItem,
   selectSelection,
@@ -32,7 +31,6 @@ import { getItemIndex } from './getItemIndex';
 import { getItemsPerRow } from './getItemsPerRow';
 import { GalleryImage, GalleryImagePlaceholder } from './ImageGrid/GalleryImage';
 import { GallerySelectionCountTag } from './ImageGrid/GallerySelectionCountTag';
-import { PaginatedGrid } from './PaginatedGrid';
 import { scrollIntoView } from './scrollIntoView';
 import { useGalleryImageNames } from './use-gallery-image-names';
 import { useScrollableGallery } from './useScrollableGallery';
@@ -274,6 +272,10 @@ const useKeepSelectedImageInView = (
       return;
     }
 
+    if (!imageNames.includes(targetImageName)) {
+      return;
+    }
+
     setTimeout(() => {
       scrollIntoView(targetImageName, imageNames, rootEl, virtuosoGridHandle, range);
     }, 0);
@@ -312,93 +314,89 @@ const useStarImageHotkey = () => {
   });
 };
 
-/**
- * Infinite scroll grid component using react-virtuoso
- */
-const InfiniteScrollGrid = memo(() => {
-  const virtuosoRef = useRef<VirtuosoGridHandle>(null);
-  const rangeRef = useRef<ListRange>({ startIndex: 0, endIndex: 0 });
-  const rootRef = useRef<HTMLDivElement>(null);
+type GalleryImageGridContentProps = {
+  imageNames: string[];
+  isLoading: boolean;
+  queryArgs: ListImageNamesQueryArgs;
+  rootRef?: React.RefObject<HTMLDivElement>;
+};
 
-  // Get the ordered list of image names - this is our primary data source for virtualization
-  const { queryArgs, imageNames, isLoading } = useGalleryImageNames();
+export const GalleryImageGridContent = memo(
+  ({ imageNames, isLoading, queryArgs, rootRef: rootRefProp }: GalleryImageGridContentProps) => {
+    const virtuosoRef = useRef<VirtuosoGridHandle>(null);
+    const rangeRef = useRef<ListRange>({ startIndex: 0, endIndex: 0 });
+    const internalRootRef = useRef<HTMLDivElement>(null);
+    const rootRef = rootRefProp ?? internalRootRef;
 
-  // Use range-based fetching for bulk loading image DTOs into cache based on the visible range
-  const { onRangeChanged } = useRangeBasedImageFetching({
-    imageNames,
-    enabled: !isLoading,
-  });
+    // Use range-based fetching for bulk loading image DTOs into cache based on the visible range
+    const { onRangeChanged } = useRangeBasedImageFetching({
+      imageNames,
+      enabled: !isLoading,
+    });
 
-  useStarImageHotkey();
-  useKeepSelectedImageInView(imageNames, virtuosoRef, rootRef, rangeRef);
-  useKeyboardNavigation(imageNames, virtuosoRef, rootRef);
-  const scrollerRef = useScrollableGallery(rootRef);
+    useStarImageHotkey();
+    useKeepSelectedImageInView(imageNames, virtuosoRef, rootRef, rangeRef);
+    useKeyboardNavigation(imageNames, virtuosoRef, rootRef);
+    const scrollerRef = useScrollableGallery(rootRef);
 
-  /*
-   * We have to keep track of the visible range for keep-selected-image-in-view functionality and push the range to
-   * the range-based image fetching hook.
-   */
-  const handleRangeChanged = useCallback(
-    (range: ListRange) => {
-      rangeRef.current = range;
-      onRangeChanged(range);
-    },
-    [onRangeChanged]
-  );
+    /*
+     * We have to keep track of the visible range for keep-selected-image-in-view functionality and push the range to
+     * the range-based image fetching hook.
+     */
+    const handleRangeChanged = useCallback(
+      (range: ListRange) => {
+        rangeRef.current = range;
+        onRangeChanged(range);
+      },
+      [onRangeChanged]
+    );
 
-  const context = useMemo<GridContext>(() => ({ imageNames, queryArgs }), [imageNames, queryArgs]);
+    const context = useMemo<GridContext>(() => ({ imageNames, queryArgs }), [imageNames, queryArgs]);
 
-  if (isLoading) {
+    if (isLoading) {
+      return (
+        <Flex w="full" h="full" alignItems="center" justifyContent="center" gap={4}>
+          <Spinner size="lg" opacity={0.3} />
+          <Text color="base.300">Loading gallery...</Text>
+        </Flex>
+      );
+    }
+
+    if (imageNames.length === 0) {
+      return (
+        <Flex w="full" h="full" alignItems="center" justifyContent="center">
+          <Text color="base.300">No images found</Text>
+        </Flex>
+      );
+    }
+
     return (
-      <Flex w="full" h="full" alignItems="center" justifyContent="center" gap={4}>
-        <Spinner size="lg" opacity={0.3} />
-        <Text color="base.300">Loading gallery...</Text>
-      </Flex>
+      // This wrapper component is necessary to initialize the overlay scrollbars!
+      <Box data-overlayscrollbars-initialize="" ref={rootRef} position="relative" w="full" h="full">
+        <VirtuosoGrid<string, GridContext>
+          ref={virtuosoRef}
+          context={context}
+          data={imageNames}
+          increaseViewportBy={4096}
+          itemContent={itemContent}
+          computeItemKey={computeItemKey}
+          components={components}
+          style={style}
+          scrollerRef={scrollerRef}
+          scrollSeekConfiguration={scrollSeekConfiguration}
+          rangeChanged={handleRangeChanged}
+        />
+        <GallerySelectionCountTag imageNames={imageNames} />
+      </Box>
     );
   }
+);
 
-  if (imageNames.length === 0) {
-    return (
-      <Flex w="full" h="full" alignItems="center" justifyContent="center">
-        <Text color="base.300">No images found</Text>
-      </Flex>
-    );
-  }
+GalleryImageGridContent.displayName = 'GalleryImageGridContent';
 
-  return (
-    // This wrapper component is necessary to initialize the overlay scrollbars!
-    <Box data-overlayscrollbars-initialize="" ref={rootRef} position="relative" w="full" h="full">
-      <VirtuosoGrid<string, GridContext>
-        ref={virtuosoRef}
-        context={context}
-        data={imageNames}
-        increaseViewportBy={4096}
-        itemContent={itemContent}
-        computeItemKey={computeItemKey}
-        components={components}
-        style={style}
-        scrollerRef={scrollerRef}
-        scrollSeekConfiguration={scrollSeekConfiguration}
-        rangeChanged={handleRangeChanged}
-      />
-      <GallerySelectionCountTag />
-    </Box>
-  );
-});
-InfiniteScrollGrid.displayName = 'InfiniteScrollGrid';
-
-/**
- * Main gallery grid component that conditionally renders either infinite scroll or paginated grid
- * based on user preference. Pagination mode uses less memory, suitable for low-RAM devices.
- */
 export const GalleryImageGrid = memo(() => {
-  const galleryMode = useAppSelector(selectGalleryMode);
-
-  if (galleryMode === 'pagination') {
-    return <PaginatedGrid />;
-  }
-
-  return <InfiniteScrollGrid />;
+  const { queryArgs, imageNames, isLoading } = useGalleryImageNames();
+  return <GalleryImageGridContent imageNames={imageNames} isLoading={isLoading} queryArgs={queryArgs} />;
 });
 
 GalleryImageGrid.displayName = 'GalleryImageGrid';
