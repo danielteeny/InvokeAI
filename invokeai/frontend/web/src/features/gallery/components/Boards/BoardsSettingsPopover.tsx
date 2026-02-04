@@ -36,7 +36,7 @@ export const BoardsSettingsPopover = memo(() => {
         />
       </PopoverTrigger>
       <Portal>
-        <PopoverContent>
+        <PopoverContent minW={320}>
           <PopoverArrow />
           <PopoverBody>
             <Flex direction="column" gap={2}>
