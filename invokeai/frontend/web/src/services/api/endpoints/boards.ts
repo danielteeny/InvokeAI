@@ -225,9 +225,12 @@ export const boardsApi = api.injectEndpoints({
         method: 'POST',
         body: { image_names },
       }),
-      // Only invalidate Board list for unseen count updates
-      // Don't invalidate ImageNameList - marking seen doesn't change which images exist
-      invalidatesTags: () => [{ type: 'Board', id: LIST_TAG }],
+      // Invalidate ALL board caches (list, children, descendants) since we don't know which boards
+      // the images belong to. Also invalidate ImageNameList to update earmark display.
+      invalidatesTags: () => [
+        { type: 'Board' },  // Invalidates all Board tags
+        'ImageNameList',    // Updates unseen_image_names for earmark display
+      ],
     }),
 
     // Mark images as unseen endpoints
@@ -252,9 +255,12 @@ export const boardsApi = api.injectEndpoints({
         method: 'POST',
         body: { image_names },
       }),
-      // Only invalidate Board list for unseen count updates
-      // Don't invalidate ImageNameList - marking unseen doesn't change which images exist
-      invalidatesTags: () => [{ type: 'Board', id: LIST_TAG }],
+      // Invalidate ALL board caches (list, children, descendants) since we don't know which boards
+      // the images belong to. Also invalidate ImageNameList to update earmark display.
+      invalidatesTags: () => [
+        { type: 'Board' },  // Invalidates all Board tags
+        'ImageNameList',    // Updates unseen_image_names for earmark display
+      ],
     }),
   }),
 });
