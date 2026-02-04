@@ -64,6 +64,7 @@
         "assetsWithCount_one": "{{count}} asset",
         "assetsWithCount_other": "{{count}} assets",
         "updateBoardError": "Error updating board",
+        "unableToUnarchiveBoard": "Unable to unarchive board",
         "markAllAsSeen": "Mark All as Seen",
         "markedAsSeen": "Marked images as seen",
         "unableToMarkAsSeen": "Unable to mark images as seen",
@@ -104,7 +105,8 @@
         "selectConditionType": "Select type...",
         "selectOperator": "Select operator...",
         "conditionValue": "Value",
-        "noValidConditions": "Please add at least one valid condition"
+        "noValidConditions": "Please add at least one valid condition",
+        "autoAssignmentRulesEnabled": "Auto-Assignment Rules Enabled"
     },
     "accordions": {
         "generation": {

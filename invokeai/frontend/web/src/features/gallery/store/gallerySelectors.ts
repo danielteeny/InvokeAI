@@ -76,3 +76,9 @@ export const selectAlwaysShouldImageSizeBadge = createSelector(
 );
 
 // Folder hierarchy selectors - selectRecursiveFolderView is defined earlier in the file
+
+// Auto-assignment rules master toggle selector
+export const selectAutoAssignmentRulesMasterEnabled = createSelector(
+  selectGallerySlice,
+  (gallery) => gallery.autoAssignmentRulesMasterEnabled
+);

@@ -39,6 +39,8 @@ export const zGalleryState = z.object({
   boardsListOrderDir: zOrderDir,
   // Folder hierarchy settings
   recursiveFolderView: z.boolean(), // true = show all descendants (Lightroom-style), false = show only direct contents (Finder-style)
+  // Auto-assignment rules master toggle
+  autoAssignmentRulesMasterEnabled: z.boolean(),
 });
 
 export type GalleryState = z.infer<typeof zGalleryState>;

@@ -3,6 +3,7 @@ import { Combobox, FormControl, FormLabel } from '@invoke-ai/ui-library';
 import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
 import { selectAutoAddBoardId, selectAutoAssignBoardOnClick } from 'features/gallery/store/gallerySelectors';
 import { autoAddBoardIdChanged } from 'features/gallery/store/gallerySlice';
+import { boardsToHierarchicalOptions } from 'features/gallery/util/boardTreeUtils';
 import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useListAllBoardsQuery } from 'services/api/endpoints/boards';
@@ -16,20 +17,14 @@ const BoardAutoAddSelect = () => {
     {},
     {
       selectFromResult: ({ data }) => {
-        const options: ComboboxOption[] = [
-          {
-            label: t('common.none'),
-            value: 'none',
-          },
-        ].concat(
-          (data ?? []).map(({ board_id, board_name }) => ({
-            label: board_name,
-            value: board_id,
-          }))
-        );
+        const noneOption: ComboboxOption = {
+          label: t('common.none'),
+          value: 'none',
+        };
+        const hierarchicalOptions = data ? boardsToHierarchicalOptions(data) : [];
         return {
-          options,
-          hasBoards: options.length > 1,
+          options: [noneOption, ...hierarchicalOptions],
+          hasBoards: hierarchicalOptions.length > 0,
         };
       },
     }

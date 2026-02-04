@@ -12,6 +12,7 @@ import {
 } from '@invoke-ai/ui-library';
 import BoardAutoAddSelect from 'features/gallery/components/Boards/BoardAutoAddSelect';
 import AutoAssignBoardCheckbox from 'features/gallery/components/GallerySettingsPopover/AutoAssignBoardCheckbox';
+import AutoAssignmentRulesMasterToggle from 'features/gallery/components/GallerySettingsPopover/AutoAssignmentRulesMasterToggle';
 import ShowArchivedBoardsCheckbox from 'features/gallery/components/GallerySettingsPopover/ShowArchivedBoardsCheckbox';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -46,6 +47,7 @@ export const BoardsSettingsPopover = memo(() => {
               <Divider />
 
               <AutoAssignBoardCheckbox />
+              <AutoAssignmentRulesMasterToggle />
               <ShowArchivedBoardsCheckbox />
               <BoardAutoAddSelect />
 

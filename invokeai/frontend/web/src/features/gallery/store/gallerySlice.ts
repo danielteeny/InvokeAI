@@ -36,6 +36,8 @@ const getInitialState = (): GalleryState => ({
   boardsListOrderDir: 'DESC',
   // Folder hierarchy settings - default to Lightroom-style (show all descendants)
   recursiveFolderView: true,
+  // Auto-assignment rules master toggle - enabled by default
+  autoAssignmentRulesMasterEnabled: true,
 });
 
 const slice = createSlice({
@@ -147,6 +149,10 @@ const slice = createSlice({
     recursiveFolderViewChanged: (state, action: PayloadAction<boolean>) => {
       state.recursiveFolderView = action.payload;
     },
+    // Auto-assignment rules master toggle action
+    autoAssignmentRulesMasterEnabledChanged: (state, action: PayloadAction<boolean>) => {
+      state.autoAssignmentRulesMasterEnabled = action.payload;
+    },
   },
 });
 
@@ -174,6 +180,8 @@ export const {
   boardsListOrderDirChanged,
   // Folder hierarchy actions
   recursiveFolderViewChanged,
+  // Auto-assignment rules master toggle action
+  autoAssignmentRulesMasterEnabledChanged,
 } = slice.actions;
 
 export const selectGallerySlice = (state: RootState) => state.gallery;
