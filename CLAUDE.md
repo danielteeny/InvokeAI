@@ -76,6 +76,31 @@ git push                              # Push to origin (triggers Docker build)
 - **Auto-build**: Pushes to `personal/dev` trigger Docker builds
 - **Auto-sync**: Daily at midnight UTC, syncs from upstream InvokeAI
 
+## Current Issue: Image Navigation Lag
+
+**Problem**: Clicking left/right navigation arrows in image viewer causes lag - buttons become inactive for a significant time after each click.
+
+**What we tried** (commit `b01efdd136`):
+- Changed `markImagesAsSeenByImageNames` and `markImagesAsUnseenByImageNames` in `boards.ts` to only invalidate `{ type: 'Board', id: LIST_TAG }` instead of all Board queries + `ImageNameList`
+- This didn't fully fix the issue
+
+**Flow causing lag**:
+1. Arrow click → `imageSelected()` → `lastSelectedItem` changes
+2. `ImageViewer.tsx` useEffect fires `markAsSeen()` mutation
+3. Mutation invalidates caches → RTK Query refetches
+4. During refetch, `isFetching=true` in `useGalleryImageNames()`
+5. `NextPrevItemButtons.tsx` has `isDisabled={isFetching}` → buttons disabled
+
+**Key files to investigate**:
+- `src/features/gallery/components/ImageViewer/ImageViewer.tsx` - fires markAsSeen on navigation
+- `src/features/gallery/components/ImageViewer/NextPrevItemButtons.tsx` - has `isDisabled={isFetching}`
+- `src/features/gallery/hooks/useGalleryImageNames.ts` - returns isFetching state
+- `src/services/api/endpoints/boards.ts` - cache invalidation tags
+
+**Alternative fixes to try**:
+- Option B: Change `NextPrevItemButtons.tsx` to use `isDisabled={isLoading}` instead of `isFetching` (only block during initial load, not background refetch)
+- Option C: Debounce the mark-as-seen call in ImageViewer.tsx
+
 ## Recent Work
 
 - Arrow key navigation fix for image viewer (allows navigation when viewer panel is focused)

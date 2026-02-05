@@ -49,7 +49,7 @@ const BoardTreeNode = memo(({ board, depth, selectedId, disabledIds, onSelect }:
   const { data: children, isLoading: isLoadingChildren } = useGetBoardChildrenQuery(board.board_id);
 
   const hasChildren = (children?.length ?? 0) > 0;
-  const indentPx = depth * 20;
+  const indentPx = depth * 16;
   const isDisabled = disabledIds.has(board.board_id);
   const isSelected = selectedId === board.board_id;
 

@@ -1,10 +1,11 @@
 from typing import Optional
 
-from fastapi import Body, HTTPException, Path, Query
+from fastapi import Body, HTTPException, Path
 from fastapi.routing import APIRouter
 from pydantic import BaseModel, Field
 
 from invokeai.app.api.dependencies import ApiDependencies
+from invokeai.app.services.lora_category_records.lora_category_defaults import DEFAULT_LORA_CATEGORIES
 from invokeai.app.services.lora_category_records.lora_category_records_common import (
     LoraCategoryChanges,
     LoraCategoryRecord,
@@ -13,19 +14,6 @@ from invokeai.app.services.lora_category_records.lora_category_records_common im
 )
 
 lora_categories_router = APIRouter(prefix="/v1/lora_categories", tags=["lora_categories"])
-
-
-# Default LoRA categories - these are always available and merged with custom categories
-# Colors optimized for dark UI readability
-DEFAULT_LORA_CATEGORIES = [
-    {"id": "style", "name": "Style", "color": "#AB47BC", "sort_order": 0},  # Purple
-    {"id": "character", "name": "Character", "color": "#81C784", "sort_order": 1},  # Green
-    {"id": "concept", "name": "Concept", "color": "#42A5F5", "sort_order": 2},  # Blue
-    {"id": "pose", "name": "Pose", "color": "#FF7043", "sort_order": 3},  # Orange
-    {"id": "clothing", "name": "Clothing", "color": "#F06292", "sort_order": 4},  # Pink
-    {"id": "background", "name": "Background", "color": "#26A69A", "sort_order": 5},  # Teal
-    {"id": "quality", "name": "Quality/Enhancement", "color": "#FFEE58", "sort_order": 6},  # Yellow
-]
 
 
 class LoraCategoryDTO(BaseModel):

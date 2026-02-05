@@ -34,13 +34,7 @@ export const addSocketConnectedEventListener = (startAppListening: AppStartListe
         return;
       }
 
-      // If we are in development mode, reset the whole API state. In this scenario, reconnects will
-      // typically be caused by reloading the server, in which case we do want to reset the whole API.
-      if (import.meta.env.MODE === 'development') {
-        dispatch(api.util.resetApiState());
-      }
-
-      // Else, we need to compare the last-known queue status with the current queue status, re-fetching
+      // Compare the last-known queue status with the current queue status, re-fetching
       // everything if it has changed.
       const prevQueueStatusData = selectQueueStatus(getState()).data;
 

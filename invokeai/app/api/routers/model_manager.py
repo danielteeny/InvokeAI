@@ -48,6 +48,7 @@ from invokeai.backend.model_manager.starter_models import (
     StarterModelWithoutDependencies,
 )
 from invokeai.backend.model_manager.taxonomy import BaseModelType, ModelFormat, ModelType
+from invokeai.app.services.lora_category_records.lora_category_defaults import DEFAULT_LORA_CATEGORIES
 
 model_manager_router = APIRouter(prefix="/v2/models", tags=["model_manager"])
 
@@ -61,18 +62,7 @@ class LoRACategoryInfo(BaseModel):
 
     id: str = Field(description="Unique identifier for the category")
     name: str = Field(description="Display name for the category")
-    color: str = Field(description="Color scheme for the category (e.g., 'purple', 'green')")
-
-
-DEFAULT_LORA_CATEGORIES: List[LoRACategoryInfo] = [
-    LoRACategoryInfo(id="style", name="Style", color="purple"),
-    LoRACategoryInfo(id="character", name="Character", color="green"),
-    LoRACategoryInfo(id="concept", name="Concept", color="blue"),
-    LoRACategoryInfo(id="pose", name="Pose", color="orange"),
-    LoRACategoryInfo(id="clothing", name="Clothing", color="pink"),
-    LoRACategoryInfo(id="background", name="Background", color="teal"),
-    LoRACategoryInfo(id="quality", name="Quality/Enhancement", color="yellow"),
-]
+    color: str = Field(description="Color scheme for the category (hex code, e.g., '#AB47BC')")
 
 
 class ModelsList(BaseModel):
@@ -1122,4 +1112,7 @@ async def reset_hf_token() -> HFTokenStatus:
 )
 async def get_lora_categories() -> List[LoRACategoryInfo]:
     """Get the list of available LoRA categories for organization."""
-    return DEFAULT_LORA_CATEGORIES
+    return [
+        LoRACategoryInfo(id=cat["id"], name=cat["name"], color=cat["color"])
+        for cat in DEFAULT_LORA_CATEGORIES
+    ]

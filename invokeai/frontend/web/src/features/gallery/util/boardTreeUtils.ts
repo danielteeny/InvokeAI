@@ -2,6 +2,13 @@ import type { ComboboxOption } from '@invoke-ai/ui-library';
 import type { BoardDTO } from 'services/api/types';
 
 /**
+ * Extended ComboboxOption that includes hierarchy depth for CSS-based indentation.
+ */
+export interface BoardComboboxOption extends ComboboxOption {
+  depth: number;
+}
+
+/**
  * Gets the hierarchy depth from a path string.
  * E.g., "/parent1/parent2" = depth 2
  */
@@ -112,4 +119,18 @@ export const boardsToHierarchicalOptions = (boards: BoardDTO[]): ComboboxOption[
       value: board.board_id,
     };
   });
+};
+
+/**
+ * Converts an array of boards to BoardComboboxOption[] with depth metadata.
+ * Returns boards sorted hierarchically with depth for CSS-based indentation.
+ */
+export const boardsToHierarchicalOptionsWithDepth = (boards: BoardDTO[]): BoardComboboxOption[] => {
+  const sortedBoards = sortBoardsHierarchically(boards);
+
+  return sortedBoards.map((board) => ({
+    label: board.board_name,
+    value: board.board_id,
+    depth: getDepth(board.path),
+  }));
 };

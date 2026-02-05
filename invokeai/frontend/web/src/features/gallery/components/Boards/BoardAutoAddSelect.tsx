@@ -1,12 +1,15 @@
-import type { ComboboxOnChange, ComboboxOption } from '@invoke-ai/ui-library';
+import type { ComboboxOnChange } from '@invoke-ai/ui-library';
 import { Combobox, FormControl, FormLabel } from '@invoke-ai/ui-library';
 import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
 import { selectAutoAddBoardId, selectAutoAssignBoardOnClick } from 'features/gallery/store/gallerySelectors';
 import { autoAddBoardIdChanged } from 'features/gallery/store/gallerySlice';
-import { boardsToHierarchicalOptions } from 'features/gallery/util/boardTreeUtils';
+import type { BoardComboboxOption } from 'features/gallery/util/boardTreeUtils';
+import { boardsToHierarchicalOptionsWithDepth } from 'features/gallery/util/boardTreeUtils';
 import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useListAllBoardsQuery } from 'services/api/endpoints/boards';
+
+import { BoardOption } from './BoardComboboxOption';
 
 const BoardAutoAddSelect = () => {
   const dispatch = useAppDispatch();
@@ -17,11 +20,12 @@ const BoardAutoAddSelect = () => {
     {},
     {
       selectFromResult: ({ data }) => {
-        const noneOption: ComboboxOption = {
+        const noneOption: BoardComboboxOption = {
           label: t('common.none'),
           value: 'none',
+          depth: 0,
         };
-        const hierarchicalOptions = data ? boardsToHierarchicalOptions(data) : [];
+        const hierarchicalOptions = data ? boardsToHierarchicalOptionsWithDepth(data) : [];
         return {
           options: [noneOption, ...hierarchicalOptions],
           hasBoards: hierarchicalOptions.length > 0,
@@ -53,6 +57,7 @@ const BoardAutoAddSelect = () => {
         onChange={onChange}
         placeholder={t('boards.selectBoard')}
         noOptionsMessage={noOptionsMessage}
+        components={{ Option: BoardOption }}
       />
     </FormControl>
   );

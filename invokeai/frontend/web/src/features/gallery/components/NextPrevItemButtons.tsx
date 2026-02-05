@@ -16,7 +16,7 @@ const NextPrevItemButtons = ({ inset = 8 }: { inset?: ChakraProps['insetInlineSt
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const lastSelectedItem = useAppSelector(selectLastSelectedItem);
-  const { imageNames, isFetching } = useGalleryImageNames();
+  const { imageNames, isLoading } = useGalleryImageNames();
 
   const isOnFirstItem = useMemo(
     () => (lastSelectedItem ? imageNames.at(0) === lastSelectedItem : false),
@@ -63,7 +63,7 @@ const NextPrevItemButtons = ({ inset = 8 }: { inset?: ChakraProps['insetInlineSt
           w={`${ARROW_SIZE}px`}
           h={`${ARROW_SIZE}px`}
           onClick={onClickLeftArrow}
-          isDisabled={isFetching}
+          isDisabled={isLoading}
           color="base.100"
           pointerEvents="auto"
           insetInlineStart={inset}
@@ -83,7 +83,7 @@ const NextPrevItemButtons = ({ inset = 8 }: { inset?: ChakraProps['insetInlineSt
           w={`${ARROW_SIZE}px`}
           h={`${ARROW_SIZE}px`}
           onClick={onClickRightArrow}
-          isDisabled={isFetching}
+          isDisabled={isLoading}
           color="base.100"
           pointerEvents="auto"
           insetInlineEnd={inset}

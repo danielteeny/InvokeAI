@@ -83,12 +83,19 @@ const BoardContextMenu = ({ board, children }: Props) => {
     }
   }, [board.board_id, updateBoard]);
 
-  const handleUnarchive = useCallback(() => {
-    updateBoard({
-      board_id: board.board_id,
-      changes: { archived: false },
-    });
-  }, [board.board_id, updateBoard]);
+  const handleUnarchive = useCallback(async () => {
+    try {
+      await updateBoard({
+        board_id: board.board_id,
+        changes: { archived: false },
+      }).unwrap();
+    } catch {
+      toast({
+        status: 'error',
+        title: t('boards.unableToUnarchiveBoard'),
+      });
+    }
+  }, [board.board_id, updateBoard, t]);
 
   const setAsBoardToDelete = useCallback(() => {
     $boardToDelete.set(board);

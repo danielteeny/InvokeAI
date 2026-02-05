@@ -13,6 +13,7 @@ import { getListImagesUrl } from 'services/api/util';
 
 import type { ApiTagDescription } from '..';
 import { api, buildV1Url, LIST_TAG } from '..';
+import { imagesApi } from './images';
 
 /**
  * Builds an endpoint URL for the boards router
@@ -225,12 +226,36 @@ export const boardsApi = api.injectEndpoints({
         method: 'POST',
         body: { image_names },
       }),
-      // Invalidate ALL board caches (list, children, descendants) since we don't know which boards
-      // the images belong to. Also invalidate ImageNameList to update earmark display.
-      invalidatesTags: () => [
-        { type: 'Board' },  // Invalidates all Board tags
-        'ImageNameList',    // Updates unseen_image_names for earmark display
-      ],
+      // No invalidatesTags — use optimistic update to avoid mass refetches.
+      // Board unseen counts will catch up on next natural refetch (navigation, reconnect).
+      async onQueryStarted({ image_names }, { dispatch, queryFulfilled, getState }) {
+        const imageNameSet = new Set(image_names);
+        // Optimistically update unseen_image_names in all active getImageNames caches
+        const patches: Array<ReturnType<ReturnType<typeof imagesApi.util.updateQueryData>>> = [];
+        const entries = imagesApi.util.selectInvalidatedBy(getState(), ['ImageNameList']);
+        for (const { endpointName, originalArgs } of entries) {
+          if (endpointName === 'getImageNames') {
+            patches.push(
+              dispatch(
+                imagesApi.util.updateQueryData('getImageNames', originalArgs, (draft) => {
+                  if (draft.unseen_image_names) {
+                    draft.unseen_image_names = draft.unseen_image_names.filter(
+                      (name) => !imageNameSet.has(name)
+                    );
+                  }
+                })
+              )
+            );
+          }
+        }
+        try {
+          await queryFulfilled;
+        } catch {
+          for (const patch of patches) {
+            patch.undo();
+          }
+        }
+      },
     }),
 
     // Mark images as unseen endpoints
@@ -255,12 +280,38 @@ export const boardsApi = api.injectEndpoints({
         method: 'POST',
         body: { image_names },
       }),
-      // Invalidate ALL board caches (list, children, descendants) since we don't know which boards
-      // the images belong to. Also invalidate ImageNameList to update earmark display.
-      invalidatesTags: () => [
-        { type: 'Board' },  // Invalidates all Board tags
-        'ImageNameList',    // Updates unseen_image_names for earmark display
-      ],
+      // No invalidatesTags — use optimistic update to avoid mass refetches.
+      async onQueryStarted({ image_names }, { dispatch, queryFulfilled, getState }) {
+        // Optimistically add image names to unseen_image_names in all active getImageNames caches
+        const patches: Array<ReturnType<ReturnType<typeof imagesApi.util.updateQueryData>>> = [];
+        const entries = imagesApi.util.selectInvalidatedBy(getState(), ['ImageNameList']);
+        for (const { endpointName, originalArgs } of entries) {
+          if (endpointName === 'getImageNames') {
+            patches.push(
+              dispatch(
+                imagesApi.util.updateQueryData('getImageNames', originalArgs, (draft) => {
+                  if (draft.unseen_image_names) {
+                    for (const name of image_names) {
+                      if (!draft.unseen_image_names.includes(name)) {
+                        draft.unseen_image_names.push(name);
+                      }
+                    }
+                  } else {
+                    draft.unseen_image_names = [...image_names];
+                  }
+                })
+              )
+            );
+          }
+        }
+        try {
+          await queryFulfilled;
+        } catch {
+          for (const patch of patches) {
+            patch.undo();
+          }
+        }
+      },
     }),
   }),
 });

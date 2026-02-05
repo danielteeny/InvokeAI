@@ -269,10 +269,11 @@ const AutoAssignmentRulesModal = () => {
     async (ruleId: string, enabled: boolean) => {
       try {
         await updateRule({ rule_id: ruleId, changes: { is_enabled: enabled } }).unwrap();
-      } catch {
+      } catch (error) {
         toast({
           status: 'error',
           title: t('boards.updateRuleError'),
+          description: error instanceof Error ? error.message : undefined,
         });
       }
     },
@@ -290,10 +291,11 @@ const AutoAssignmentRulesModal = () => {
           status: 'success',
           title: t('boards.ruleDeleted'),
         });
-      } catch {
+      } catch (error) {
         toast({
           status: 'error',
           title: t('boards.deleteRuleError'),
+          description: error instanceof Error ? error.message : undefined,
         });
       }
     },
@@ -357,10 +359,11 @@ const AutoAssignmentRulesModal = () => {
       setEditRuleName('');
       setEditConditions([]);
       setEditMatchAll(true);
-    } catch {
+    } catch (error) {
       toast({
         status: 'error',
         title: t('boards.updateRuleError'),
+        description: error instanceof Error ? error.message : undefined,
       });
     } finally {
       setIsUpdating(false);
@@ -438,10 +441,11 @@ const AutoAssignmentRulesModal = () => {
       setNewRuleName('');
       setNewConditions([{ case_sensitive: false }]);
       setMatchAll(true);
-    } catch {
+    } catch (error) {
       toast({
         status: 'error',
         title: t('boards.createRuleError'),
+        description: error instanceof Error ? error.message : undefined,
       });
     }
   }, [board, newRuleName, newConditions, matchAll, createRule, t]);
