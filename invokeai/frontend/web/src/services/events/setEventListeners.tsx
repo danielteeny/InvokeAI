@@ -45,7 +45,8 @@ export const setEventListeners = ({ socket, store, setIsConnected }: SetEventLis
   const finishedQueueItemIds = new LRUCache<number, boolean>({ max: 100 });
 
   socket.on('connect', () => {
-    log.debug('Connected');
+    const transport = socket.io.engine?.transport?.name ?? 'unknown';
+    log.info({ transport }, 'Socket connected');
     setIsConnected(true);
     dispatch(socketConnected());
     socket.emit('subscribe_queue', { queue_id: 'default' });
@@ -54,7 +55,7 @@ export const setEventListeners = ({ socket, store, setIsConnected }: SetEventLis
   });
 
   socket.on('connect_error', (error) => {
-    log.debug('Connect error');
+    log.error({ error: error.message, stack: error.stack }, 'Socket connect error');
     setIsConnected(false);
     $lastProgressEvent.set(null);
     if (error && error.message) {
@@ -70,8 +71,8 @@ export const setEventListeners = ({ socket, store, setIsConnected }: SetEventLis
     }
   });
 
-  socket.on('disconnect', () => {
-    log.debug('Disconnected');
+  socket.on('disconnect', (reason) => {
+    log.warn({ reason }, 'Socket disconnected');
     $lastProgressEvent.set(null);
     setIsConnected(false);
   });

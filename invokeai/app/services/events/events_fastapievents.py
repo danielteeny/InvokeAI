@@ -1,10 +1,13 @@
 import asyncio
+import logging
 import threading
 
 from fastapi_events.dispatcher import dispatch
 
 from invokeai.app.services.events.events_base import EventServiceBase
 from invokeai.app.services.events.events_common import EventBase
+
+logger = logging.getLogger("invokeai")
 
 
 class FastAPIEventService(EventServiceBase):
@@ -28,6 +31,8 @@ class FastAPIEventService(EventServiceBase):
         self._loop.call_soon_threadsafe(self._queue.put_nowait, None)
 
     def dispatch(self, event: EventBase) -> None:
+        queue_depth = self._queue.qsize()
+        logger.debug(f"[EVENT] Queuing event: {event.__class__.__name__}, queue_depth={queue_depth}")
         self._loop.call_soon_threadsafe(self._queue.put_nowait, event)
 
     async def _dispatch_from_queue(self, stop_event: threading.Event):

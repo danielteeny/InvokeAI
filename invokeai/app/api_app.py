@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -80,6 +81,18 @@ app = FastAPI(
 )
 
 
+class RequestTimingMiddleware(BaseHTTPMiddleware):
+    """Middleware to log slow HTTP requests for debugging."""
+
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint):
+        start = time.time()
+        response = await call_next(request)
+        duration = time.time() - start
+        if duration > 1.0:  # Log slow requests (>1s)
+            logger.warning(f"[SLOW] {request.method} {request.url.path} took {duration:.2f}s")
+        return response
+
+
 class RedirectRootWithQueryStringMiddleware(BaseHTTPMiddleware):
     """When a request is made to the root path with a query string, redirect to the root path without the query string.
 
@@ -99,6 +112,7 @@ class RedirectRootWithQueryStringMiddleware(BaseHTTPMiddleware):
 
 
 # Add the middleware
+app.add_middleware(RequestTimingMiddleware)
 app.add_middleware(RedirectRootWithQueryStringMiddleware)
 
 

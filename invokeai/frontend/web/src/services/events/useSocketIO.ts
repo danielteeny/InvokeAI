@@ -35,6 +35,11 @@ export const useSocketIO = () => {
       path: `${window.location.pathname}ws/socket.io`,
       autoConnect: false, // achtung! removing this breaks the dynamic middleware
       forceNew: true,
+      // Reconnection settings for better connection resilience
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
     };
 
     return options;

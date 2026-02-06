@@ -1,5 +1,6 @@
 # Copyright (c) 2022 Kyle Schouviller (https://github.com/kyle0654)
 
+import logging
 from typing import Any
 
 from fastapi import FastAPI
@@ -81,6 +82,8 @@ MODEL_EVENTS = {
 
 BULK_DOWNLOAD_EVENTS = {BulkDownloadStartedEvent, BulkDownloadCompleteEvent, BulkDownloadErrorEvent}
 
+logger = logging.getLogger("invokeai")
+
 
 class SocketIO:
     _sub_queue = "subscribe_queue"
@@ -90,10 +93,19 @@ class SocketIO:
     _unsub_bulk_download = "unsubscribe_bulk_download"
 
     def __init__(self, app: FastAPI):
-        self._sio = AsyncServer(async_mode="asgi", cors_allowed_origins="*")
+        self._sio = AsyncServer(
+            async_mode="asgi",
+            cors_allowed_origins="*",
+            ping_interval=10,  # Send ping every 10s (was 25s default)
+            ping_timeout=5,  # Wait 5s for pong before disconnect
+            logger=True,  # Enable Socket.IO internal logging
+            engineio_logger=True,  # Enable Engine.IO logging
+        )
         self._app = ASGIApp(socketio_server=self._sio, socketio_path="/ws/socket.io")
         app.mount("/ws", self._app)
 
+        self._sio.on("connect", handler=self._handle_connect)
+        self._sio.on("disconnect", handler=self._handle_disconnect)
         self._sio.on(self._sub_queue, handler=self._handle_sub_queue)
         self._sio.on(self._unsub_queue, handler=self._handle_unsub_queue)
         self._sio.on(self._sub_bulk_download, handler=self._handle_sub_bulk_download)
@@ -102,6 +114,13 @@ class SocketIO:
         register_events(QUEUE_EVENTS, self._handle_queue_event)
         register_events(MODEL_EVENTS, self._handle_model_event)
         register_events(BULK_DOWNLOAD_EVENTS, self._handle_bulk_image_download_event)
+
+    async def _handle_connect(self, sid: str, environ: dict) -> None:
+        client_ip = environ.get("REMOTE_ADDR", "unknown")
+        logger.info(f"[SOCKET] Client connected: sid={sid}, ip={client_ip}")
+
+    async def _handle_disconnect(self, sid: str) -> None:
+        logger.info(f"[SOCKET] Client disconnected: sid={sid}")
 
     async def _handle_sub_queue(self, sid: str, data: Any) -> None:
         await self._sio.enter_room(sid, QueueSubscriptionEvent(**data).queue_id)

@@ -210,12 +210,62 @@ export const boardsApi = api.injectEndpoints({
         method: 'POST',
         ...(image_names && { body: { image_names } }),
       }),
-      invalidatesTags: (result, error, arg) => [
-        { type: 'Board', id: arg.board_id },
-        { type: 'Board', id: `unseen-${arg.board_id}` },
-        { type: 'Board', id: LIST_TAG },
-        'ImageNameList', // Refreshes getImageNames to update unseen_image_names
-      ],
+      // No invalidatesTags — use optimistic update to avoid mass refetches that cause UI disconnects.
+      // Board unseen counts will catch up on next natural refetch (navigation, reconnect).
+      async onQueryStarted({ board_id, image_names }, { dispatch, queryFulfilled, getState }) {
+        // Optimistically update unseen_image_names in all active getImageNames caches
+        const patches: Array<ReturnType<ReturnType<typeof imagesApi.util.updateQueryData>>> = [];
+
+        if (image_names && image_names.length > 0) {
+          // If specific image names provided, remove them from unseen lists
+          const imageNameSet = new Set(image_names);
+          const entries = imagesApi.util.selectInvalidatedBy(getState(), ['ImageNameList']);
+          for (const { endpointName, originalArgs } of entries) {
+            if (endpointName === 'getImageNames') {
+              patches.push(
+                dispatch(
+                  imagesApi.util.updateQueryData('getImageNames', originalArgs, (draft) => {
+                    if (draft.unseen_image_names) {
+                      draft.unseen_image_names = draft.unseen_image_names.filter((name) => !imageNameSet.has(name));
+                    }
+                  })
+                )
+              );
+            }
+          }
+        } else {
+          // If no image names provided, mark all images in board as seen (clear unseen list for board)
+          const entries = imagesApi.util.selectInvalidatedBy(getState(), ['ImageNameList']);
+          for (const { endpointName, originalArgs } of entries) {
+            if (endpointName === 'getImageNames' && originalArgs?.board_id === board_id) {
+              patches.push(
+                dispatch(
+                  imagesApi.util.updateQueryData('getImageNames', originalArgs, (draft) => {
+                    draft.unseen_image_names = [];
+                  })
+                )
+              );
+            }
+          }
+        }
+
+        // Optimistically update board unseen count to 0 (or reduced count)
+        patches.push(
+          dispatch(
+            boardsApi.util.updateQueryData('getUnseenCount', board_id, () => {
+              return 0;
+            })
+          )
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          for (const patch of patches) {
+            patch.undo();
+          }
+        }
+      },
     }),
 
     // Mark images as seen by image names only (no board_id required)
@@ -265,12 +315,51 @@ export const boardsApi = api.injectEndpoints({
         method: 'POST',
         ...(image_names && { body: { image_names } }),
       }),
-      invalidatesTags: (result, error, arg) => [
-        { type: 'Board', id: arg.board_id },
-        { type: 'Board', id: `unseen-${arg.board_id}` },
-        { type: 'Board', id: LIST_TAG },
-        'ImageNameList',
-      ],
+      // No invalidatesTags — use optimistic update to avoid mass refetches.
+      async onQueryStarted({ board_id, image_names }, { dispatch, queryFulfilled, getState }) {
+        // Optimistically add image names to unseen_image_names in active getImageNames caches
+        const patches: Array<ReturnType<ReturnType<typeof imagesApi.util.updateQueryData>>> = [];
+
+        if (image_names && image_names.length > 0) {
+          const entries = imagesApi.util.selectInvalidatedBy(getState(), ['ImageNameList']);
+          for (const { endpointName, originalArgs } of entries) {
+            if (endpointName === 'getImageNames') {
+              patches.push(
+                dispatch(
+                  imagesApi.util.updateQueryData('getImageNames', originalArgs, (draft) => {
+                    if (draft.unseen_image_names) {
+                      for (const name of image_names) {
+                        if (!draft.unseen_image_names.includes(name)) {
+                          draft.unseen_image_names.push(name);
+                        }
+                      }
+                    } else {
+                      draft.unseen_image_names = [...image_names];
+                    }
+                  })
+                )
+              );
+            }
+          }
+
+          // Optimistically increment the unseen count
+          patches.push(
+            dispatch(
+              boardsApi.util.updateQueryData('getUnseenCount', board_id, (draft) => {
+                return draft + image_names.length;
+              })
+            )
+          );
+        }
+
+        try {
+          await queryFulfilled;
+        } catch {
+          for (const patch of patches) {
+            patch.undo();
+          }
+        }
+      },
     }),
 
     // Mark images as unseen by image names only (no board_id required)
