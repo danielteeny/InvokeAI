@@ -11,7 +11,7 @@ import { getItemsPerPage } from './getItemsPerPage';
 const FALLBACK_PAGE_SIZE = 200;
 
 export const GalleryImageGridPaged = memo(() => {
-  const { queryArgs, imageNames, isLoading } = useGalleryImageNames();
+  const { queryArgs, imageNames, unseenImageNames, isLoading } = useGalleryImageNames();
   const lastSelectedItem = useAppSelector(selectLastSelectedItem);
   const galleryImageMinimumWidth = useAppSelector(selectGalleryImageMinimumWidth);
   const [pageIndex, setPageIndex] = useState(0);
@@ -26,6 +26,11 @@ export const GalleryImageGridPaged = memo(() => {
     const start = pageIndex * pageSize;
     return imageNames.slice(start, start + pageSize);
   }, [imageNames, pageIndex, pageSize]);
+  const pageImageNameSet = useMemo(() => new Set(pageImageNames), [pageImageNames]);
+  const pageUnseenImageNames = useMemo(
+    () => unseenImageNames.filter((name) => pageImageNameSet.has(name)),
+    [unseenImageNames, pageImageNameSet]
+  );
 
   useEffect(() => {
     if (pageIndex >= pageCount && pageCount > 0) {
@@ -165,7 +170,14 @@ export const GalleryImageGridPaged = memo(() => {
   );
 
   if (isLoading || imageNames.length === 0) {
-    return <GalleryImageGridContent imageNames={imageNames} isLoading={isLoading} queryArgs={queryArgs} />;
+    return (
+      <GalleryImageGridContent
+        imageNames={imageNames}
+        unseenImageNames={unseenImageNames}
+        isLoading={isLoading}
+        queryArgs={queryArgs}
+      />
+    );
   }
 
   return (
@@ -181,6 +193,7 @@ export const GalleryImageGridPaged = memo(() => {
       <Flex w="full" h="full">
         <GalleryImageGridContent
           imageNames={pageImageNames}
+          unseenImageNames={pageUnseenImageNames}
           isLoading={false}
           queryArgs={queryArgs}
           rootRef={gridRootRef}

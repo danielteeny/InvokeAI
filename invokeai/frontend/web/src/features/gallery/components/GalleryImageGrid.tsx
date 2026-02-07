@@ -40,12 +40,13 @@ type ListImageNamesQueryArgs = ReturnType<typeof selectGetImageNamesQueryArgs>;
 type GridContext = {
   queryArgs: ListImageNamesQueryArgs;
   imageNames: string[];
+  unseenImageNameSet: Set<string>;
 };
 
 /**
  * Wraps an image - either the placeholder as it is being loaded or the loaded image
  */
-const ImageAtPosition = memo(({ imageName }: { index: number; imageName: string }) => {
+const ImageAtPosition = memo(({ imageName, isUnseen }: { index: number; imageName: string; isUnseen: boolean }) => {
   /*
    * We rely on the useRangeBasedImageFetching to fetch all image DTOs, caching them with RTK Query.
    *
@@ -72,7 +73,7 @@ const ImageAtPosition = memo(({ imageName }: { index: number; imageName: string 
     return <GalleryImagePlaceholder data-item-id={imageName} />;
   }
 
-  return <GalleryImage imageDTO={imageDTO} />;
+  return <GalleryImage imageDTO={imageDTO} isUnseen={isUnseen} />;
 });
 ImageAtPosition.displayName = 'ImageAtPosition';
 
@@ -316,13 +317,14 @@ const useStarImageHotkey = () => {
 
 type GalleryImageGridContentProps = {
   imageNames: string[];
+  unseenImageNames: string[];
   isLoading: boolean;
   queryArgs: ListImageNamesQueryArgs;
   rootRef?: React.RefObject<HTMLDivElement>;
 };
 
 export const GalleryImageGridContent = memo(
-  ({ imageNames, isLoading, queryArgs, rootRef: rootRefProp }: GalleryImageGridContentProps) => {
+  ({ imageNames, unseenImageNames, isLoading, queryArgs, rootRef: rootRefProp }: GalleryImageGridContentProps) => {
     const virtuosoRef = useRef<VirtuosoGridHandle>(null);
     const rangeRef = useRef<ListRange>({ startIndex: 0, endIndex: 0 });
     const internalRootRef = useRef<HTMLDivElement>(null);
@@ -351,7 +353,11 @@ export const GalleryImageGridContent = memo(
       [onRangeChanged]
     );
 
-    const context = useMemo<GridContext>(() => ({ imageNames, queryArgs }), [imageNames, queryArgs]);
+    const unseenImageNameSet = useMemo(() => new Set(unseenImageNames), [unseenImageNames]);
+    const context = useMemo<GridContext>(
+      () => ({ imageNames, queryArgs, unseenImageNameSet }),
+      [imageNames, queryArgs, unseenImageNameSet]
+    );
 
     if (isLoading) {
       return (
@@ -395,8 +401,15 @@ export const GalleryImageGridContent = memo(
 GalleryImageGridContent.displayName = 'GalleryImageGridContent';
 
 export const GalleryImageGrid = memo(() => {
-  const { queryArgs, imageNames, isLoading } = useGalleryImageNames();
-  return <GalleryImageGridContent imageNames={imageNames} isLoading={isLoading} queryArgs={queryArgs} />;
+  const { queryArgs, imageNames, unseenImageNames, isLoading } = useGalleryImageNames();
+  return (
+    <GalleryImageGridContent
+      imageNames={imageNames}
+      unseenImageNames={unseenImageNames}
+      isLoading={isLoading}
+      queryArgs={queryArgs}
+    />
+  );
 });
 
 GalleryImageGrid.displayName = 'GalleryImageGrid';
@@ -427,8 +440,8 @@ const ListComponent: GridComponents<GridContext>['List'] = forwardRef(({ context
 });
 ListComponent.displayName = 'ListComponent';
 
-const itemContent: GridItemContent<string, GridContext> = (index, imageName) => {
-  return <ImageAtPosition index={index} imageName={imageName} />;
+const itemContent: GridItemContent<string, GridContext> = (index, imageName, context) => {
+  return <ImageAtPosition index={index} imageName={imageName} isUnseen={context.unseenImageNameSet.has(imageName)} />;
 };
 
 const ItemComponent: GridComponents<GridContext>['Item'] = forwardRef(({ context: _, ...rest }, ref) => (

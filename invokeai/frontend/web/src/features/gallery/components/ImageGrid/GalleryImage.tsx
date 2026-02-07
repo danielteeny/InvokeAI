@@ -14,24 +14,21 @@ import { createSingleImageDragPreview, setSingleImageDragPreview } from 'feature
 import { firefoxDndFix } from 'features/dnd/util';
 import { useImageContextMenu } from 'features/gallery/components/ContextMenu/ImageContextMenu';
 import { GalleryItemHoverIcons } from 'features/gallery/components/ImageGrid/GalleryItemHoverIcons';
-import {
-  selectGetImageNamesQueryArgs,
-  selectSelectedBoardId,
-  selectSelection,
-} from 'features/gallery/store/gallerySelectors';
+import { selectGetImageNamesQueryArgs, selectSelectedBoardId, selectSelection } from 'features/gallery/store/gallerySelectors';
 import { imageToCompareChanged, selectGallerySlice, selectionChanged } from 'features/gallery/store/gallerySlice';
 import { navigationApi } from 'features/ui/layouts/navigation-api';
 import { VIEWER_PANEL_ID } from 'features/ui/layouts/shared';
 import type { MouseEvent, MouseEventHandler } from 'react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PiImageBold } from 'react-icons/pi';
-import { imagesApi, useGetImageNamesQuery } from 'services/api/endpoints/images';
+import { imagesApi } from 'services/api/endpoints/images';
 import type { ImageDTO } from 'services/api/types';
 
 import { galleryItemContainerSX } from './galleryItemContainerSX';
 
 interface Props {
   imageDTO: ImageDTO;
+  isUnseen: boolean;
 }
 
 const buildOnClick =
@@ -85,7 +82,7 @@ const buildOnClick =
     }
   };
 
-export const GalleryImage = memo(({ imageDTO }: Props) => {
+export const GalleryImage = memo(({ imageDTO, isUnseen }: Props) => {
   const store = useAppStore();
   const [isDragging, setIsDragging] = useState(false);
   const [dragPreviewState, setDragPreviewState] = useState<
@@ -102,16 +99,6 @@ export const GalleryImage = memo(({ imageDTO }: Props) => {
     [imageDTO.image_name]
   );
   const isSelected = useAppSelector(selectIsSelected);
-
-  // Unseen indicator: check if this image is in the unseen list
-  const queryArgs = useAppSelector(selectGetImageNamesQueryArgs);
-  const { data: imageNamesResult } = useGetImageNamesQuery(queryArgs);
-  const isUnseen = useMemo(() => {
-    if (!imageNamesResult?.unseen_image_names) {
-      return false;
-    }
-    return imageNamesResult.unseen_image_names.includes(imageDTO.image_name);
-  }, [imageNamesResult?.unseen_image_names, imageDTO.image_name]);
 
   useEffect(() => {
     const element = ref.current;

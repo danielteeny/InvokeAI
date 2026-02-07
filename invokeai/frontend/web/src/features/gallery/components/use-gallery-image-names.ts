@@ -8,6 +8,7 @@ const getImageNamesQueryOptions = {
   refetchOnReconnect: true,
   selectFromResult: ({ currentData, isLoading, isFetching }) => ({
     imageNames: currentData?.image_names ?? EMPTY_ARRAY,
+    unseenImageNames: currentData?.unseen_image_names ?? EMPTY_ARRAY,
     isLoading,
     isFetching,
   }),
@@ -16,6 +17,9 @@ const getImageNamesQueryOptions = {
 export const useGalleryImageNames = () => {
   const _queryArgs = useAppSelector(selectGetImageNamesQueryArgs);
   const [queryArgs] = useDebounce(_queryArgs, 300);
-  const { imageNames, isLoading, isFetching } = useGetImageNamesQuery(queryArgs, getImageNamesQueryOptions);
-  return { imageNames, isLoading, isFetching, queryArgs };
+  const { imageNames, unseenImageNames, isLoading, isFetching } = useGetImageNamesQuery(
+    queryArgs,
+    getImageNamesQueryOptions
+  );
+  return { imageNames, unseenImageNames, isLoading, isFetching, queryArgs };
 };

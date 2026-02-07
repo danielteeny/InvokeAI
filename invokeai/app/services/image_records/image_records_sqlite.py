@@ -420,6 +420,8 @@ class SqliteImageRecordStorage(ImageRecordStorageBase):
             # Build query conditions (reused for both starred count and image names queries)
             query_conditions = ""
             query_params: list[Union[int, str, bool]] = []
+            all_board_ids: Optional[list[str]] = None
+            category_strings: Optional[list[str]] = None
 
             if image_origin is not None:
                 query_conditions += """--sql
@@ -449,8 +451,7 @@ class SqliteImageRecordStorage(ImageRecordStorageBase):
             elif board_id is not None:
                 if recursive:
                     # Include images from this board and all descendant boards
-                    descendant_ids = self._get_descendant_board_ids(board_id)
-                    all_board_ids = [board_id] + descendant_ids
+                    all_board_ids = [board_id] + self._get_descendant_board_ids(board_id)
                     placeholders = ",".join("?" * len(all_board_ids))
                     query_conditions += f"""--sql
                     AND board_images.board_id IN ({placeholders})
@@ -511,26 +512,45 @@ class SqliteImageRecordStorage(ImageRecordStorageBase):
             unseen_image_names: list[str] = []
             if board_id is not None and board_id != "none":
                 if recursive:
-                    descendant_ids = self._get_descendant_board_ids(board_id)
-                    all_board_ids = [board_id] + descendant_ids
+                    # Reuse descendants computed for the main query if available.
+                    all_board_ids = (
+                        all_board_ids
+                        if all_board_ids is not None
+                        else [board_id] + self._get_descendant_board_ids(board_id)
+                    )
                     placeholders = ",".join("?" * len(all_board_ids))
                     unseen_query = f"""--sql
                     SELECT images.image_name
                     FROM images
-                    LEFT JOIN board_images ON board_images.image_name = images.image_name
-                    WHERE board_images.board_id IN ({placeholders}) AND board_images.is_seen = 0
+                    INNER JOIN board_images ON board_images.image_name = images.image_name
+                    WHERE board_images.board_id IN ({placeholders})
+                    AND board_images.is_seen = 0
                     AND images.is_intermediate = FALSE
                     """
-                    cursor.execute(unseen_query, all_board_ids)
+                    unseen_params: list[Union[int, str, bool]] = list(all_board_ids)
+                    if category_strings:
+                        category_placeholders = ",".join("?" * len(category_strings))
+                        unseen_query += f"""--sql
+                        AND images.image_category IN ({category_placeholders})
+                        """
+                        unseen_params.extend(category_strings)
+                    cursor.execute(unseen_query, unseen_params)
                 else:
                     unseen_query = """--sql
                     SELECT images.image_name
                     FROM images
-                    LEFT JOIN board_images ON board_images.image_name = images.image_name
+                    INNER JOIN board_images ON board_images.image_name = images.image_name
                     WHERE board_images.board_id = ? AND board_images.is_seen = 0
                     AND images.is_intermediate = FALSE
                     """
-                    cursor.execute(unseen_query, (board_id,))
+                    unseen_params = [board_id]
+                    if category_strings:
+                        category_placeholders = ",".join("?" * len(category_strings))
+                        unseen_query += f"""--sql
+                        AND images.image_category IN ({category_placeholders})
+                        """
+                        unseen_params.extend(category_strings)
+                    cursor.execute(unseen_query, unseen_params)
                 unseen_result = cast(list[sqlite3.Row], cursor.fetchall())
                 unseen_image_names = [row[0] for row in unseen_result]
 
