@@ -43,6 +43,56 @@ const buildImagesUrl = (path: string = '', query?: Parameters<typeof buildV1Url>
  */
 const buildBoardImagesUrl = (path: string = '') => buildV1Url(`board_images/${path}`);
 
+const applyStarStateToNamesResult = ({
+  draft,
+  imageNameSet,
+  previousStarStateByImageName,
+  starred,
+  starredFirst,
+  orderDir,
+}: {
+  draft: GetImageNamesResult;
+  imageNameSet: Set<string>;
+  previousStarStateByImageName: Map<string, boolean>;
+  starred: boolean;
+  starredFirst: boolean;
+  orderDir: 'ASC' | 'DESC';
+}) => {
+  const imageNames = draft.image_names;
+  let starredCount = draft.starred_count;
+
+  for (const imageName of imageNameSet) {
+    const previousStarState = previousStarStateByImageName.get(imageName);
+    if (previousStarState === undefined || previousStarState === starred) {
+      continue;
+    }
+
+    const currentIndex = imageNames.indexOf(imageName);
+    if (currentIndex === -1) {
+      continue;
+    }
+
+    if (!starredFirst) {
+      starredCount += starred ? 1 : -1;
+      continue;
+    }
+
+    imageNames.splice(currentIndex, 1);
+
+    if (starred) {
+      const targetIndex = orderDir === 'DESC' ? 0 : starredCount;
+      imageNames.splice(Math.max(0, Math.min(targetIndex, imageNames.length)), 0, imageName);
+      starredCount += 1;
+    } else {
+      starredCount = Math.max(0, starredCount - 1);
+      const targetIndex = orderDir === 'DESC' ? starredCount : imageNames.length;
+      imageNames.splice(Math.max(0, Math.min(targetIndex, imageNames.length)), 0, imageName);
+    }
+  }
+
+  draft.starred_count = Math.max(0, starredCount);
+};
+
 export const imagesApi = api.injectEndpoints({
   endpoints: (build) => ({
     /**
@@ -202,13 +252,78 @@ export const imagesApi = api.injectEndpoints({
         method: 'POST',
         body,
       }),
+      async onQueryStarted({ image_names }, { dispatch, getState, queryFulfilled }) {
+        const imageNameSet = new Set(image_names);
+        const previousStarStateByImageName = new Map<string, boolean>();
+        const patches: Array<{ undo: () => void }> = [];
+
+        for (const imageName of imageNameSet) {
+          const imageDTO = imagesApi.endpoints.getImageDTO.select(imageName)(getState()).data;
+          if (imageDTO) {
+            previousStarStateByImageName.set(imageName, imageDTO.starred);
+          }
+        }
+
+        for (const imageName of imageNameSet) {
+          patches.push(
+            dispatch(
+              imagesApi.util.updateQueryData('getImageDTO', imageName, (draft) => {
+                draft.starred = true;
+              })
+            )
+          );
+        }
+
+        const imageListEntries = imagesApi.util.selectInvalidatedBy(getState(), [{ type: 'ImageList' }]);
+        for (const { endpointName, originalArgs } of imageListEntries) {
+          if (endpointName === 'listImages') {
+            patches.push(
+              dispatch(
+                imagesApi.util.updateQueryData('listImages', originalArgs, (draft) => {
+                  for (const item of draft.items) {
+                    if (imageNameSet.has(item.image_name)) {
+                      item.starred = true;
+                    }
+                  }
+                })
+              )
+            );
+          }
+        }
+
+        const imageNameEntries = imagesApi.util.selectInvalidatedBy(getState(), ['ImageNameList']);
+        for (const { endpointName, originalArgs } of imageNameEntries) {
+          if (endpointName === 'getImageNames') {
+            patches.push(
+              dispatch(
+                imagesApi.util.updateQueryData('getImageNames', originalArgs, (draft) => {
+                  applyStarStateToNamesResult({
+                    draft,
+                    imageNameSet,
+                    previousStarStateByImageName,
+                    starred: true,
+                    starredFirst: originalArgs.starred_first ?? true,
+                    orderDir: originalArgs.order_dir ?? 'DESC',
+                  });
+                })
+              )
+            );
+          }
+        }
+
+        try {
+          await queryFulfilled;
+        } catch {
+          for (const patch of patches) {
+            patch.undo();
+          }
+        }
+      },
       invalidatesTags: (result) => {
         if (!result) {
           return [];
         }
         return [
-          ...getTagsToInvalidateForImageMutation(result.starred_images),
-          ...getTagsToInvalidateForBoardAffectingMutation(result.affected_boards),
           'ImageCollectionCounts',
           { type: 'ImageCollection', id: 'starred' },
           { type: 'ImageCollection', id: 'unstarred' },
@@ -227,13 +342,78 @@ export const imagesApi = api.injectEndpoints({
         method: 'POST',
         body,
       }),
+      async onQueryStarted({ image_names }, { dispatch, getState, queryFulfilled }) {
+        const imageNameSet = new Set(image_names);
+        const previousStarStateByImageName = new Map<string, boolean>();
+        const patches: Array<{ undo: () => void }> = [];
+
+        for (const imageName of imageNameSet) {
+          const imageDTO = imagesApi.endpoints.getImageDTO.select(imageName)(getState()).data;
+          if (imageDTO) {
+            previousStarStateByImageName.set(imageName, imageDTO.starred);
+          }
+        }
+
+        for (const imageName of imageNameSet) {
+          patches.push(
+            dispatch(
+              imagesApi.util.updateQueryData('getImageDTO', imageName, (draft) => {
+                draft.starred = false;
+              })
+            )
+          );
+        }
+
+        const imageListEntries = imagesApi.util.selectInvalidatedBy(getState(), [{ type: 'ImageList' }]);
+        for (const { endpointName, originalArgs } of imageListEntries) {
+          if (endpointName === 'listImages') {
+            patches.push(
+              dispatch(
+                imagesApi.util.updateQueryData('listImages', originalArgs, (draft) => {
+                  for (const item of draft.items) {
+                    if (imageNameSet.has(item.image_name)) {
+                      item.starred = false;
+                    }
+                  }
+                })
+              )
+            );
+          }
+        }
+
+        const imageNameEntries = imagesApi.util.selectInvalidatedBy(getState(), ['ImageNameList']);
+        for (const { endpointName, originalArgs } of imageNameEntries) {
+          if (endpointName === 'getImageNames') {
+            patches.push(
+              dispatch(
+                imagesApi.util.updateQueryData('getImageNames', originalArgs, (draft) => {
+                  applyStarStateToNamesResult({
+                    draft,
+                    imageNameSet,
+                    previousStarStateByImageName,
+                    starred: false,
+                    starredFirst: originalArgs.starred_first ?? true,
+                    orderDir: originalArgs.order_dir ?? 'DESC',
+                  });
+                })
+              )
+            );
+          }
+        }
+
+        try {
+          await queryFulfilled;
+        } catch {
+          for (const patch of patches) {
+            patch.undo();
+          }
+        }
+      },
       invalidatesTags: (result) => {
         if (!result) {
           return [];
         }
         return [
-          ...getTagsToInvalidateForImageMutation(result.unstarred_images),
-          ...getTagsToInvalidateForBoardAffectingMutation(result.affected_boards),
           'ImageCollectionCounts',
           { type: 'ImageCollection', id: 'starred' },
           { type: 'ImageCollection', id: 'unstarred' },

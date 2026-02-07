@@ -1,3 +1,4 @@
+from time import perf_counter
 from typing import Optional, Union
 
 from fastapi import Body, HTTPException, Path, Query
@@ -299,12 +300,19 @@ async def mark_images_as_seen_by_image_names(
 
     This is useful when viewing images from multiple boards (e.g., in a parent board's recursive view).
     """
+    start = perf_counter()
     try:
         ApiDependencies.invoker.services.board_image_records.mark_images_as_seen(
             board_id=None, image_names=request.image_names
         )
     except Exception:
         raise HTTPException(status_code=500, detail="Failed to mark images as seen")
+    finally:
+        elapsed_ms = (perf_counter() - start) * 1000
+        if elapsed_ms > 250:
+            ApiDependencies.invoker.services.logger.warning(
+                f"Slow mark_seen_by_image_names: {elapsed_ms:.1f}ms for {len(request.image_names)} images"
+            )
 
 
 @boards_router.get(

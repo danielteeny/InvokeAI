@@ -14,6 +14,8 @@ from invokeai.app.services.shared.sqlite.sqlite_database import SqliteDatabase
 
 
 class SqliteBoardImageRecordStorage(BoardImageRecordStorageBase):
+    _MARK_SEEN_BATCH_SIZE = 500
+
     def __init__(self, db: SqliteDatabase) -> None:
         super().__init__()
         self._db = db
@@ -318,36 +320,42 @@ class SqliteBoardImageRecordStorage(BoardImageRecordStorageBase):
                 if len(image_names) == 0:
                     return
 
-                placeholders = ",".join("?" * len(image_names))
+                for i in range(0, len(image_names), self._MARK_SEEN_BATCH_SIZE):
+                    batch = image_names[i : i + self._MARK_SEEN_BATCH_SIZE]
+                    placeholders = ",".join("?" * len(batch))
 
-                if board_id is None:
-                    # Mark images regardless of which board they're in
-                    cursor.execute(
-                        f"""--sql
-                        UPDATE board_images
-                        SET is_seen = 1
-                        WHERE image_name IN ({placeholders});
-                        """,
-                        image_names,
-                    )
-                else:
-                    # Mark images only in the specified board
-                    cursor.execute(
-                        f"""--sql
-                        UPDATE board_images
-                        SET is_seen = 1
-                        WHERE board_id = ?
-                        AND image_name IN ({placeholders});
-                        """,
-                        (board_id, *image_names),
-                    )
+                    if board_id is None:
+                        # Mark images regardless of which board they're in.
+                        # Restrict to unseen rows to reduce unnecessary writes.
+                        cursor.execute(
+                            f"""--sql
+                            UPDATE board_images
+                            SET is_seen = 1
+                            WHERE is_seen = 0
+                            AND image_name IN ({placeholders});
+                            """,
+                            batch,
+                        )
+                    else:
+                        # Mark images only in the specified board.
+                        cursor.execute(
+                            f"""--sql
+                            UPDATE board_images
+                            SET is_seen = 1
+                            WHERE board_id = ?
+                            AND is_seen = 0
+                            AND image_name IN ({placeholders});
+                            """,
+                            (board_id, *batch),
+                        )
             elif board_id is not None:
                 # Mark all images in the board as seen
                 cursor.execute(
                     """--sql
                     UPDATE board_images
                     SET is_seen = 1
-                    WHERE board_id = ?;
+                    WHERE board_id = ?
+                    AND is_seen = 0;
                     """,
                     (board_id,),
                 )
@@ -368,36 +376,41 @@ class SqliteBoardImageRecordStorage(BoardImageRecordStorageBase):
                 if len(image_names) == 0:
                     return
 
-                placeholders = ",".join("?" * len(image_names))
+                for i in range(0, len(image_names), self._MARK_SEEN_BATCH_SIZE):
+                    batch = image_names[i : i + self._MARK_SEEN_BATCH_SIZE]
+                    placeholders = ",".join("?" * len(batch))
 
-                if board_id is None:
-                    # Mark images regardless of which board they're in
-                    cursor.execute(
-                        f"""--sql
-                        UPDATE board_images
-                        SET is_seen = 0
-                        WHERE image_name IN ({placeholders});
-                        """,
-                        image_names,
-                    )
-                else:
-                    # Mark images only in the specified board
-                    cursor.execute(
-                        f"""--sql
-                        UPDATE board_images
-                        SET is_seen = 0
-                        WHERE board_id = ?
-                        AND image_name IN ({placeholders});
-                        """,
-                        (board_id, *image_names),
-                    )
+                    if board_id is None:
+                        # Mark images regardless of which board they're in.
+                        cursor.execute(
+                            f"""--sql
+                            UPDATE board_images
+                            SET is_seen = 0
+                            WHERE is_seen = 1
+                            AND image_name IN ({placeholders});
+                            """,
+                            batch,
+                        )
+                    else:
+                        # Mark images only in the specified board.
+                        cursor.execute(
+                            f"""--sql
+                            UPDATE board_images
+                            SET is_seen = 0
+                            WHERE board_id = ?
+                            AND is_seen = 1
+                            AND image_name IN ({placeholders});
+                            """,
+                            (board_id, *batch),
+                        )
             elif board_id is not None:
                 # Mark all images in the board as unseen
                 cursor.execute(
                     """--sql
                     UPDATE board_images
                     SET is_seen = 0
-                    WHERE board_id = ?;
+                    WHERE board_id = ?
+                    AND is_seen = 1;
                     """,
                     (board_id,),
                 )

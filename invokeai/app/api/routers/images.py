@@ -1,6 +1,7 @@
 import io
 import json
 import traceback
+from time import perf_counter
 from typing import ClassVar, Optional
 
 from fastapi import BackgroundTasks, Body, HTTPException, Path, Query, Request, Response, UploadFile
@@ -453,6 +454,7 @@ class ImagesUpdatedFromListResult(BaseModel):
 async def star_images_in_list(
     image_names: list[str] = Body(description="The list of names of images to star", embed=True),
 ) -> StarredImagesResult:
+    start = perf_counter()
     try:
         starred_images: set[str] = set()
         affected_boards: set[str] = set()
@@ -471,12 +473,19 @@ async def star_images_in_list(
         )
     except Exception:
         raise HTTPException(status_code=500, detail="Failed to star images")
+    finally:
+        elapsed_ms = (perf_counter() - start) * 1000
+        if elapsed_ms > 250:
+            ApiDependencies.invoker.services.logger.warning(
+                f"Slow star request: {elapsed_ms:.1f}ms for {len(image_names)} images"
+            )
 
 
 @images_router.post("/unstar", operation_id="unstar_images_in_list", response_model=UnstarredImagesResult)
 async def unstar_images_in_list(
     image_names: list[str] = Body(description="The list of names of images to unstar", embed=True),
 ) -> UnstarredImagesResult:
+    start = perf_counter()
     try:
         unstarred_images: set[str] = set()
         affected_boards: set[str] = set()
@@ -495,6 +504,12 @@ async def unstar_images_in_list(
         )
     except Exception:
         raise HTTPException(status_code=500, detail="Failed to unstar images")
+    finally:
+        elapsed_ms = (perf_counter() - start) * 1000
+        if elapsed_ms > 250:
+            ApiDependencies.invoker.services.logger.warning(
+                f"Slow unstar request: {elapsed_ms:.1f}ms for {len(image_names)} images"
+            )
 
 
 class ImagesDownloaded(BaseModel):
