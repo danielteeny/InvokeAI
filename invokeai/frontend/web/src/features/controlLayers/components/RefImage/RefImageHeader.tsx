@@ -5,9 +5,11 @@ import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
 import { useRefImageEntity } from 'features/controlLayers/components/RefImage/useRefImageEntity';
 import { useRefImageIdContext } from 'features/controlLayers/contexts/RefImageIdContext';
 import { selectMainModelConfig } from 'features/controlLayers/store/paramsSlice';
+import { getMaxEnabledGlobalRefImagesForModel } from 'features/controlLayers/store/refImageLimits';
 import {
   refImageDeleted,
   refImageIsEnabledToggled,
+  selectReferenceImageEntities,
   selectRefImageEntityIds,
 } from 'features/controlLayers/store/refImagesSlice';
 import { getGlobalReferenceImageWarnings } from 'features/controlLayers/store/validators';
@@ -33,6 +35,16 @@ export const RefImageHeader = memo(() => {
   const refImageNumber = useAppSelector(selectRefImageNumber);
   const entity = useRefImageEntity(id);
   const mainModelConfig = useAppSelector(selectMainModelConfig);
+  const refImageEntities = useAppSelector(selectReferenceImageEntities);
+
+  const maxEnabledRefImages = useMemo(() => getMaxEnabledGlobalRefImagesForModel(mainModelConfig), [mainModelConfig]);
+
+  const enabledRefImagesCount = useMemo(
+    () => refImageEntities.filter((refImageEntity) => refImageEntity.isEnabled).length,
+    [refImageEntities]
+  );
+
+  const isEnableBlockedByLimit = !entity.isEnabled && enabledRefImagesCount >= maxEnabledRefImages;
 
   const warnings = useMemo(() => {
     return getGlobalReferenceImageWarnings(entity, mainModelConfig);
@@ -70,12 +82,25 @@ export const RefImageHeader = memo(() => {
           </Text>
         )}
         <IconButton
-          tooltip={entity.isEnabled ? 'Disable Reference Image' : 'Enable Reference Image'}
+          tooltip={
+            isEnableBlockedByLimit
+              ? `This model supports up to ${maxEnabledRefImages} enabled Reference Images`
+              : entity.isEnabled
+                ? 'Disable Reference Image'
+                : 'Enable Reference Image'
+          }
           size="xs"
           variant="link"
           alignSelf="stretch"
-          aria-label={entity.isEnabled ? 'Disable ref image' : 'Enable ref image'}
+          aria-label={
+            isEnableBlockedByLimit
+              ? `Cannot enable more than ${maxEnabledRefImages} reference images`
+              : entity.isEnabled
+                ? 'Disable ref image'
+                : 'Enable ref image'
+          }
           onClick={toggleIsEnabled}
+          isDisabled={isEnableBlockedByLimit}
           icon={entity.isEnabled ? <PiCircleFill /> : <PiCircleBold />}
         />
         <IconButton

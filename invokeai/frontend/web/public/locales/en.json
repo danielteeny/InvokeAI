@@ -1486,6 +1486,7 @@
             "modelIncompatibleScaledBboxWidth": "Scaled bbox width is {{width}} but {{model}} requires multiple of {{multiple}}",
             "modelIncompatibleScaledBboxHeight": "Scaled bbox height is {{height}} but {{model}} requires multiple of {{multiple}}",
             "fluxModelMultipleControlLoRAs": "Can only use 1 Control LoRA at a time",
+            "tooManyEnabledReferenceImages": "Too many enabled Reference Images (maximum {{max}} for this model)",
             "incompatibleLoRAs": "Incompatible LoRA(s) added",
             "incompatibleKleinVariant": "LoRA variant mismatch (4B LoRA with 9B model or vice versa)",
             "canvasIsFiltering": "Canvas is busy (filtering)",

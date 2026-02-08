@@ -1,6 +1,7 @@
 import { logger } from 'app/logging/logger';
 import { getPrefixedId } from 'features/controlLayers/konva/util';
 import { selectMainModelConfig, selectParamsSlice } from 'features/controlLayers/store/paramsSlice';
+import { getEnabledGlobalRefImagesForModel } from 'features/controlLayers/store/refImageLimits';
 import { selectRefImagesSlice } from 'features/controlLayers/store/refImagesSlice';
 import { selectCanvasMetadata, selectCanvasSlice } from 'features/controlLayers/store/selectors';
 import { addControlNets, addT2IAdapters } from 'features/nodes/util/graph/generation/addControlAdapters';
@@ -38,6 +39,7 @@ export const buildSD1Graph = async (arg: GraphBuilderArg): Promise<GraphBuilderR
   const params = selectParamsSlice(state);
   const canvas = selectCanvasSlice(state);
   const refImages = selectRefImagesSlice(state);
+  const enabledRefImages = getEnabledGlobalRefImagesForModel(refImages.entities, model);
 
   const {
     cfgScale: cfg_scale,
@@ -274,7 +276,7 @@ export const buildSD1Graph = async (arg: GraphBuilderArg): Promise<GraphBuilderR
     id: getPrefixedId('ip_adapter_collector'),
   });
   const ipAdapterResult = addIPAdapters({
-    entities: refImages.entities,
+    entities: enabledRefImages,
     g,
     collector: ipAdapterCollect,
     model,

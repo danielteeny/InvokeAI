@@ -32,14 +32,17 @@ export const RefImageList = memo(() => {
 
   return (
     <Flex flexDir="column">
-      <Flex gap={2} h={16}>
-        {ids.map((id) => (
-          <RefImageIdContext.Provider key={id} value={id}>
-            <RefImagePreview />
-          </RefImageIdContext.Provider>
-        ))}
-        {ids.length < 5 && <AddRefImageDropTargetAndButton />}
-        {ids.length >= 5 && <MaxRefImages />}
+      <Flex h={16} gap={2}>
+        <Flex h="full" minW={0} overflowX="auto" overflowY="hidden" flexGrow={1}>
+          <Flex gap={2} h="full" minW="max-content" pe={1}>
+            {ids.map((id) => (
+              <RefImageIdContext.Provider key={id} value={id}>
+                <RefImagePreview />
+              </RefImageIdContext.Provider>
+            ))}
+          </Flex>
+        </Flex>
+        <AddRefImageDropTargetAndButton />
       </Flex>
       <Collapse in={isPanelOpen}>
         <Flex pt={2} w="full">
@@ -62,26 +65,6 @@ RefImageList.displayName = 'RefImageList';
 
 const dndTargetData = addGlobalReferenceImageDndTarget.getData();
 
-const MaxRefImages = memo(() => {
-  const { t } = useTranslation();
-  return (
-    <Button
-      position="relative"
-      size="sm"
-      variant="ghost"
-      h="full"
-      w="full"
-      borderWidth="2px !important"
-      borderStyle="dashed !important"
-      borderRadius="base"
-      isDisabled
-    >
-      {t('controlLayers.maxRefImages')}
-    </Button>
-  );
-});
-MaxRefImages.displayName = 'MaxRefImages';
-
 const AddRefImageDropTargetAndButton = memo(() => {
   const { dispatch, getState } = useAppStore();
   const { t } = useTranslation();
@@ -103,13 +86,14 @@ const AddRefImageDropTargetAndButton = memo(() => {
   const uploadApi = useImageUploadButton(uploadOptions);
 
   return (
-    <Flex gap={1} h="full" w="full">
+    <Flex gap={1} h="full" flexShrink={0}>
       <Button
         position="relative"
         size="sm"
         variant="ghost"
         h="full"
-        w="full"
+        minW="10rem"
+        flexShrink={0}
         borderWidth="2px !important"
         borderStyle="dashed !important"
         borderRadius="base"

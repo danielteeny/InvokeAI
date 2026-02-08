@@ -6,6 +6,7 @@ import {
   selectMainModelConfig,
   selectParamsSlice,
 } from 'features/controlLayers/store/paramsSlice';
+import { getEnabledGlobalRefImagesForModel } from 'features/controlLayers/store/refImageLimits';
 import { selectRefImagesSlice } from 'features/controlLayers/store/refImagesSlice';
 import { selectCanvasMetadata, selectCanvasSlice } from 'features/controlLayers/store/selectors';
 import { isFlux2ReferenceImageConfig, isFluxKontextReferenceImageConfig } from 'features/controlLayers/store/types';
@@ -47,6 +48,7 @@ export const buildFLUXGraph = async (arg: GraphBuilderArg): Promise<GraphBuilder
   const params = selectParamsSlice(state);
   const canvas = selectCanvasSlice(state);
   const refImages = selectRefImagesSlice(state);
+  const enabledRefImages = getEnabledGlobalRefImagesForModel(refImages.entities, model);
 
   const {
     guidance: baseGuidance,
@@ -261,8 +263,7 @@ export const buildFLUXGraph = async (arg: GraphBuilderArg): Promise<GraphBuilder
     const flux2L2i = l2i as Invocation<'flux2_vae_decode'>;
 
     // FLUX.2 Klein has built-in multi-reference image editing - no separate model needed
-    const validFlux2RefImageConfigs = selectRefImagesSlice(state)
-      .entities.filter((entity) => entity.isEnabled)
+    const validFlux2RefImageConfigs = enabledRefImages
       .filter((entity) => isFlux2ReferenceImageConfig(entity.config))
       .filter((entity) => getGlobalReferenceImageWarnings(entity, model).length === 0);
 
@@ -362,8 +363,7 @@ export const buildFLUXGraph = async (arg: GraphBuilderArg): Promise<GraphBuilder
     addFLUXLoRAs(state, g, fluxDenoise, fluxModelLoader, fluxPosCond);
 
     if (isFluxKontextDev) {
-      const validFLUXKontextConfigs = selectRefImagesSlice(state)
-        .entities.filter((entity) => entity.isEnabled)
+      const validFLUXKontextConfigs = enabledRefImages
         .filter((entity) => isFluxKontextReferenceImageConfig(entity.config))
         .filter((entity) => getGlobalReferenceImageWarnings(entity, model).length === 0);
 
@@ -498,7 +498,7 @@ export const buildFLUXGraph = async (arg: GraphBuilderArg): Promise<GraphBuilder
       id: getPrefixedId('ip_adapter_collector'),
     });
     const ipAdapterResult = addIPAdapters({
-      entities: refImages.entities,
+      entities: enabledRefImages,
       g,
       collector: ipAdapterCollect,
       model,
@@ -511,7 +511,7 @@ export const buildFLUXGraph = async (arg: GraphBuilderArg): Promise<GraphBuilder
       id: getPrefixedId('flux_redux_collector'),
     });
     const fluxReduxResult = addFLUXReduxes({
-      entities: refImages.entities,
+      entities: enabledRefImages,
       g,
       collector: fluxReduxCollect,
       model,

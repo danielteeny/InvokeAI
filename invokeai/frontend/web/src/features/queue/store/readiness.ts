@@ -9,6 +9,7 @@ import { debounce, groupBy, upperFirst } from 'es-toolkit/compat';
 import { useCanvasManagerSafe } from 'features/controlLayers/contexts/CanvasManagerProviderGate';
 import { selectAddedLoRAs } from 'features/controlLayers/store/lorasSlice';
 import { selectMainModelConfig, selectParamsSlice } from 'features/controlLayers/store/paramsSlice';
+import { getMaxEnabledGlobalRefImagesForModel } from 'features/controlLayers/store/refImageLimits';
 import { selectRefImagesSlice } from 'features/controlLayers/store/refImagesSlice';
 import { selectCanvasSlice } from 'features/controlLayers/store/selectors';
 import type { CanvasState, LoRA, ParamsState, RefImagesState } from 'features/controlLayers/store/types';
@@ -326,6 +327,13 @@ const getReasonsWhyCannotEnqueueGenerateTab = (arg: {
 
   if (model && SUPPORTS_REF_IMAGES_BASE_MODELS.includes(model.base)) {
     const enabledRefImages = refImages.entities.filter(({ isEnabled }) => isEnabled);
+    const maxEnabledRefImages = getMaxEnabledGlobalRefImagesForModel(model);
+
+    if (enabledRefImages.length > maxEnabledRefImages) {
+      reasons.push({
+        content: i18n.t('parameters.invoke.tooManyEnabledReferenceImages', { max: maxEnabledRefImages }),
+      });
+    }
 
     enabledRefImages.forEach((entity, i) => {
       const layerNumber = i + 1;
@@ -783,6 +791,13 @@ const getReasonsWhyCannotEnqueueCanvasTab = (arg: {
 
   if (model && SUPPORTS_REF_IMAGES_BASE_MODELS.includes(model.base)) {
     const enabledRefImages = refImages.entities.filter(({ isEnabled }) => isEnabled);
+    const maxEnabledRefImages = getMaxEnabledGlobalRefImagesForModel(model);
+
+    if (enabledRefImages.length > maxEnabledRefImages) {
+      reasons.push({
+        content: i18n.t('parameters.invoke.tooManyEnabledReferenceImages', { max: maxEnabledRefImages }),
+      });
+    }
 
     enabledRefImages.forEach((entity, i) => {
       const layerNumber = i + 1;
