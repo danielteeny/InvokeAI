@@ -6,6 +6,7 @@ import io
 import pathlib
 import traceback
 from copy import deepcopy
+from datetime import datetime, timezone
 from enum import Enum
 from tempfile import TemporaryDirectory
 from typing import List, Optional, Type
@@ -273,6 +274,8 @@ async def reidentify_model(
 
 class FoundModel(BaseModel):
     path: str = Field(description="Path to the model")
+    name: str = Field(description="Name of the model")
+    modified_at: datetime | None = Field(description="The model's filesystem modified timestamp in UTC", default=None)
     is_installed: bool = Field(description="Whether or not the model is already installed")
 
 
@@ -312,10 +315,16 @@ async def scan_for_models(
         scan_results: list[FoundModel] = []
 
         # Check if the model is installed by comparing paths, appending to the scan result.
-        for p in non_core_model_paths:
-            path = str(p)
-            is_installed = any(str(models_path / m.path) == path for m in installed_models)
-            found_model = FoundModel(path=path, is_installed=is_installed)
+        for p in sorted(non_core_model_paths, key=lambda model_path: model_path.as_posix()):
+            path_str = str(p)
+            is_installed = any(str(models_path / m.path) == path_str for m in installed_models)
+            modified_at: datetime | None = None
+            try:
+                modified_at = datetime.fromtimestamp(p.stat().st_mtime, tz=timezone.utc)
+            except OSError:
+                # If stat fails (e.g. transient FS errors), continue without a timestamp.
+                modified_at = None
+            found_model = FoundModel(path=path_str, name=p.name, modified_at=modified_at, is_installed=is_installed)
             scan_results.append(found_model)
     except Exception as e:
         error_type = type(e).__name__

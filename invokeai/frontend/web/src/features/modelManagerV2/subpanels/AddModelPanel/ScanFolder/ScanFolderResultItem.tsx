@@ -1,8 +1,10 @@
 import type { SystemStyleObject } from '@invoke-ai/ui-library';
 import { Flex, Text } from '@invoke-ai/ui-library';
 import { ModelResultItemActions } from 'features/modelManagerV2/subpanels/AddModelPanel/ModelResultItemActions';
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback } from 'react';
 import type { ScanFolderResponse } from 'services/api/endpoints/models';
+
+import { getScanResultName } from './scanFolderResultsUtils';
 
 type Props = {
   result: ScanFolderResponse[number];
@@ -25,21 +27,13 @@ export const ScanModelResultItem = memo(({ result, installModel }: Props) => {
     installModel(result.path);
   }, [installModel, result]);
 
-  const modelDisplayName = useMemo(() => {
-    const normalizedPath = result.path.replace(/\\/g, '/').replace(/\/+$/, '');
-
-    // Extract filename/folder name from path
-    const lastSlashIndex = normalizedPath.lastIndexOf('/');
-    return lastSlashIndex === -1 ? normalizedPath : normalizedPath.slice(lastSlashIndex + 1);
-  }, [result.path]);
-
   const modelPathParts = result.path.split(/[/\\]/);
 
   return (
     <Flex sx={scanFolderResultItemSx}>
       <Flex fontSize="sm" flexDir="column">
         {/* Model Title */}
-        <Text fontWeight="semibold">{modelDisplayName}</Text>
+        <Text fontWeight="semibold">{getScanResultName(result)}</Text>
         {/* Model Path */}
         <Flex flexWrap="wrap" color="base.200">
           {modelPathParts.map((part, index) => (

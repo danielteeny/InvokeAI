@@ -697,6 +697,7 @@ class ModelInstallService(ModelInstallServiceBase):
         config = config or ModelRecordChanges()
         hash_algo = self._app_config.hashing_algorithm
         fields = config.model_dump()
+        requested_category = fields.pop("category", None)
 
         result = ModelConfigFactory.from_model_on_disk(
             mod=model_path,
@@ -710,6 +711,10 @@ class ModelInstallService(ModelInstallServiceBase):
             raise InvalidModelConfigException(f"Could not identify model for {model_path}")
         elif isinstance(result.config, Unknown_Config):
             self._logger.error(f"Could not identify model for {model_path}, detailed results: {result.details}")
+
+        # Only LoRA configs support `category`; ignore for all other model types.
+        if requested_category is not None and hasattr(result.config, "category"):
+            result.config.category = requested_category
 
         return result.config
 

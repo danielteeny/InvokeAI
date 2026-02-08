@@ -6,6 +6,7 @@ import gc
 import platform
 import uuid
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Dict
 
 import pytest
@@ -83,6 +84,44 @@ def test_registration_meta_override_succeed(mm2_installer: ModelInstallServiceBa
     assert model_record.name == "banana_sushi"
     assert model_record.source == "fake/repo_id"
     assert model_record.key == "xyzzy"
+
+
+def test_registration_meta_override_with_category_on_non_lora_is_ignored(
+    mm2_installer: ModelInstallServiceBase, embedding_file: Path
+) -> None:
+    store = mm2_installer.record_store
+    key = mm2_installer.register_path(embedding_file, ModelRecordChanges(category="style"))
+    model_record = store.get_model(key)
+
+    # Textual inversion models do not support categories, but category overrides should be ignored safely.
+    assert model_record.type == ModelType.TextualInversion
+    assert not hasattr(model_record, "category")
+
+
+def test_probe_applies_category_for_lora_configs(
+    mm2_installer: ModelInstallServiceBase, embedding_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class MockLoraConfig:
+        def __init__(self) -> None:
+            self.category: str | None = None
+
+    mock_config = MockLoraConfig()
+    captured_override_fields: dict[str, Any] = {}
+
+    def mock_from_model_on_disk(*args: Any, **kwargs: Any) -> SimpleNamespace:
+        captured_override_fields.update(kwargs["override_fields"])
+        return SimpleNamespace(config=mock_config, details={})
+
+    monkeypatch.setattr(
+        "invokeai.app.services.model_install.model_install_default.ModelConfigFactory.from_model_on_disk",
+        mock_from_model_on_disk,
+    )
+
+    result = mm2_installer._probe(embedding_file, ModelRecordChanges(category="style"))
+
+    assert result is mock_config
+    assert "category" not in captured_override_fields
+    assert mock_config.category == "style"
 
 
 def test_install(

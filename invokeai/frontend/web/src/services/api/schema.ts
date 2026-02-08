@@ -9760,6 +9760,16 @@ export type components = {
              */
             path: string;
             /**
+             * Name
+             * @description Name of the model
+             */
+            name: string;
+            /**
+             * Modified At
+             * @description The model's filesystem modified timestamp in UTC
+             */
+            modified_at?: string | null;
+            /**
              * Is Installed
              * @description Whether or not the model is already installed
              */
