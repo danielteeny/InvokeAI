@@ -3,7 +3,7 @@ import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
 import { loraCategoryViewToggled, selectLoraCategoryViewEnabled } from 'features/controlLayers/store/lorasSlice';
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PiListBold, PiSquaresFourBold } from 'react-icons/pi';
+import { PiFoldersBold, PiListBold } from 'react-icons/pi';
 
 export const ToggleCategoryViewButton = memo(() => {
   const { t } = useTranslation();
@@ -14,11 +14,13 @@ export const ToggleCategoryViewButton = memo(() => {
     dispatch(loraCategoryViewToggled());
   }, [dispatch]);
 
+  const label = categoryViewEnabled ? t('models.sortLoRAsByCategory') : t('common.list');
+
   return (
-    <Tooltip label={categoryViewEnabled ? t('common.list') : t('common.grid')}>
+    <Tooltip label={label}>
       <IconButton
-        aria-label={categoryViewEnabled ? t('common.list') : t('common.grid')}
-        icon={categoryViewEnabled ? <PiListBold /> : <PiSquaresFourBold />}
+        aria-label={label}
+        icon={categoryViewEnabled ? <PiFoldersBold /> : <PiListBold />}
         onClick={handleClick}
         variant="ghost"
         size="sm"

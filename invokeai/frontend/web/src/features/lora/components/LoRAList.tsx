@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
 import { colorTokenToCssVar } from 'common/util/colorTokenToCssVar';
 import {
   lorasReordered,
+  selectLoraCategoryViewEnabled,
   selectLoRASortMode,
   selectLoRAsSlice,
   selectManualOrder,
@@ -55,6 +56,7 @@ export const LoRAList = memo(() => {
   const dispatch = useAppDispatch();
   const loras = useAppSelector(selectLoRAs);
   const sortMode = useAppSelector(selectLoRASortMode);
+  const categoryViewEnabled = useAppSelector(selectLoraCategoryViewEnabled);
   const manualOrder = useAppSelector(selectManualOrder);
   const [modelConfigs] = useLoRAModels();
   const { data: categories } = useListLoraCategoriesQuery();
@@ -117,9 +119,6 @@ export const LoRAList = memo(() => {
           return nameA.localeCompare(nameB);
         });
       }
-      case 'category':
-        // Return as-is; grouping handled separately
-        return loras;
     }
   }, [loras, sortMode, manualOrder, modelConfigs]);
 
@@ -187,9 +186,9 @@ export const LoRAList = memo(() => {
     return null;
   }
 
-  // Render category groups when in category mode
-  if (sortMode === 'category') {
-    const groups = groupLoRAsByCategory(loras, modelConfigs);
+  // Render category groups when category view is enabled.
+  if (categoryViewEnabled) {
+    const groups = groupLoRAsByCategory(sortedLoras, modelConfigs);
 
     // Get all category IDs that have LoRAs, maintaining order
     const categoriesWithLoRAs = orderedCategoryIds.filter((catId) => (groups[catId]?.length ?? 0) > 0);

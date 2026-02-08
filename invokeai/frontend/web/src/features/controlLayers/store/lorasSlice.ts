@@ -1,10 +1,12 @@
 import { createSelector, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from 'app/store/store';
 import type { SliceConfig } from 'app/store/types';
+import { isPlainObject } from 'es-toolkit';
 import { paramsReset } from 'features/controlLayers/store/paramsSlice';
 import { type LoRA, zLoRA } from 'features/controlLayers/store/types';
 import { zModelIdentifierField } from 'features/nodes/types/common';
 import type { LoRAModelConfig } from 'services/api/types';
+import { assert } from 'tsafe';
 import { v4 as uuidv4 } from 'uuid';
 import z from 'zod';
 
@@ -20,7 +22,7 @@ export const DEFAULT_LORA_WEIGHT_CONFIG = {
 
 const zLoRAsState = z.object({
   loras: z.array(zLoRA),
-  sortMode: z.enum(['manual', 'alphabetical', 'category']).default('manual'),
+  sortMode: z.enum(['manual', 'alphabetical']).default('manual'),
   manualOrder: z.array(z.string()).default([]),
   categoryViewEnabled: z.boolean().default(false),
   selectedCategory: z.string().nullable().default(null),
@@ -152,7 +154,18 @@ export const lorasSliceConfig: SliceConfig<typeof slice> = {
   schema: zLoRAsState,
   getInitialState,
   persistConfig: {
-    migrate: (state) => zLoRAsState.parse(state),
+    migrate: (state) => {
+      assert(isPlainObject(state));
+
+      // Legacy state used "category" as a sort mode. Keep sort as manual/alphabetical
+      // and map category mode to the independent grouping toggle.
+      if (state.sortMode === 'category') {
+        state.sortMode = 'manual';
+        state.categoryViewEnabled = true;
+      }
+
+      return zLoRAsState.parse(state);
+    },
   },
 };
 

@@ -3,12 +3,11 @@ import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
 import { lorasSortModeChanged, selectLoRASortMode } from 'features/controlLayers/store/lorasSlice';
 import React, { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PiFoldersBold, PiHandBold, PiSortAscendingBold } from 'react-icons/pi';
+import { PiHandBold, PiSortAscendingBold } from 'react-icons/pi';
 
 const SORT_MODE_CYCLE = {
   manual: 'alphabetical',
-  alphabetical: 'category',
-  category: 'manual',
+  alphabetical: 'manual',
 } as const;
 
 export const SortLoRAsButton = memo(() => {
@@ -28,11 +27,6 @@ export const SortLoRAsButton = memo(() => {
         return {
           icon: PiSortAscendingBold,
           tooltip: t('models.sortLoRAsAlphabetically'),
-        };
-      case 'category':
-        return {
-          icon: PiFoldersBold,
-          tooltip: t('models.sortLoRAsByCategory'),
         };
     }
   }, [sortMode, t]);

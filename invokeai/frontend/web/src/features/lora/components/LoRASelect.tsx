@@ -13,6 +13,7 @@ import { selectBase, selectMainModelConfig } from 'features/controlLayers/store/
 import type { LoRA } from 'features/controlLayers/store/types';
 import { LoRAPicker } from 'features/lora/components/LoRAPicker';
 import { SortLoRAsButton } from 'features/lora/components/SortLoRAsButton';
+import { ToggleCategoryViewButton } from 'features/lora/components/ToggleCategoryViewButton';
 import { zModelIdentifierField } from 'features/nodes/types/common';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -266,6 +267,7 @@ const LoRASelect = () => {
           icon={<PiBookmarkSimpleBold />}
         />
         <SortLoRAsButton />
+        <ToggleCategoryViewButton />
       </Flex>
     </Flex>
   );
