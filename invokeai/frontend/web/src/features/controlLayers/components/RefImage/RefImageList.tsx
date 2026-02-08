@@ -32,17 +32,15 @@ export const RefImageList = memo(() => {
 
   return (
     <Flex flexDir="column">
-      <Flex h={16} gap={2}>
-        <Flex h="full" minW={0} overflowX="auto" overflowY="hidden" flexGrow={1}>
-          <Flex gap={2} h="full" minW="max-content" pe={1}>
-            {ids.map((id) => (
-              <RefImageIdContext.Provider key={id} value={id}>
-                <RefImagePreview />
-              </RefImageIdContext.Provider>
-            ))}
-          </Flex>
+      <Flex h={16} overflowX="auto" overflowY="hidden">
+        <Flex gap={2} h="full" w="max-content" minW="full" pe={1}>
+          {ids.map((id) => (
+            <RefImageIdContext.Provider key={id} value={id}>
+              <RefImagePreview />
+            </RefImageIdContext.Provider>
+          ))}
+          <AddRefImageDropTargetAndButton />
         </Flex>
-        <AddRefImageDropTargetAndButton />
       </Flex>
       <Collapse in={isPanelOpen}>
         <Flex pt={2} w="full">
@@ -86,14 +84,14 @@ const AddRefImageDropTargetAndButton = memo(() => {
   const uploadApi = useImageUploadButton(uploadOptions);
 
   return (
-    <Flex gap={1} h="full" flexShrink={0}>
+    <Flex gap={1} h="full" minW="10rem" flex="1 1 10rem">
       <Button
         position="relative"
         size="sm"
         variant="ghost"
         h="full"
         minW="10rem"
-        flexShrink={0}
+        w="full"
         borderWidth="2px !important"
         borderStyle="dashed !important"
         borderRadius="base"
