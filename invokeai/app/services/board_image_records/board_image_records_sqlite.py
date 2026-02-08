@@ -233,6 +233,71 @@ class SqliteBoardImageRecordStorage(BoardImageRecordStorageBase):
             count = cast(int, cursor.fetchone()[0])
         return count
 
+    def get_direct_counts_for_boards(self, board_ids: list[str]) -> dict[str, BoardImageRecordStorageBase.BoardCounts]:
+        """Gets direct image, asset and unseen counts for multiple boards in a single query."""
+        if len(board_ids) == 0:
+            return {}
+
+        # Initialize all requested boards with zero counts.
+        counts: dict[str, BoardImageRecordStorageBase.BoardCounts] = {
+            board_id: {
+                "image_count": 0,
+                "asset_count": 0,
+                "unseen_count": 0,
+            }
+            for board_id in board_ids
+        }
+
+        image_category_strings = [c.value for c in set(IMAGE_CATEGORIES)]
+        asset_category_strings = [c.value for c in set(ASSETS_CATEGORIES)]
+        image_category_placeholders = ",".join("?" * len(image_category_strings))
+        asset_category_placeholders = ",".join("?" * len(asset_category_strings))
+        board_id_placeholders = ",".join("?" * len(board_ids))
+
+        with self._db.transaction() as cursor:
+            cursor.execute(
+                f"""--sql
+                SELECT
+                    board_images.board_id,
+                    SUM(
+                        CASE
+                            WHEN images.is_intermediate = FALSE AND images.image_category IN ({image_category_placeholders})
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS image_count,
+                    SUM(
+                        CASE
+                            WHEN images.is_intermediate = FALSE AND images.image_category IN ({asset_category_placeholders})
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS asset_count,
+                    SUM(
+                        CASE
+                            WHEN images.is_intermediate = FALSE AND board_images.is_seen = 0
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS unseen_count
+                FROM board_images
+                INNER JOIN images ON board_images.image_name = images.image_name
+                WHERE board_images.board_id IN ({board_id_placeholders})
+                GROUP BY board_images.board_id;
+                """,
+                (*image_category_strings, *asset_category_strings, *board_ids),
+            )
+            rows = cast(list[sqlite3.Row], cursor.fetchall())
+
+        for row in rows:
+            counts[row[0]] = {
+                "image_count": int(row[1] or 0),
+                "asset_count": int(row[2] or 0),
+                "unseen_count": int(row[3] or 0),
+            }
+
+        return counts
+
     # Unseen notifications methods
 
     def get_descendant_board_ids(self, board_id: str) -> list[str]:

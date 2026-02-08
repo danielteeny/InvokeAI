@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, TypedDict
 
 from invokeai.app.services.image_records.image_records_common import ImageCategory
 
@@ -64,6 +64,19 @@ class BoardImageRecordStorageBase(ABC):
 
         If recursive is True, includes assets from all descendant boards.
         """
+        pass
+
+    class BoardCounts(TypedDict):
+        image_count: int
+        asset_count: int
+        unseen_count: int
+
+    @abstractmethod
+    def get_direct_counts_for_boards(
+        self,
+        board_ids: list[str],
+    ) -> dict[str, BoardCounts]:
+        """Gets direct image, asset and unseen counts for multiple boards in a single query."""
         pass
 
     # Unseen notifications methods
