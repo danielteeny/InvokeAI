@@ -1,8 +1,9 @@
-import { Box, type SystemStyleObject } from '@invoke-ai/ui-library';
+import { Box, Icon, type SystemStyleObject } from '@invoke-ai/ui-library';
 import { GridviewPanel, type GridviewPanelApi, type IGridviewPanel } from 'dockview';
 import type { TabName } from 'features/ui/store/uiTypes';
 import { memo, type PointerEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PiDotsSixVertical } from 'react-icons/pi';
 
 import { navigationApi } from './navigation-api';
 import { MAIN_PANEL_ID, SETTINGS_PANEL_ID, TOP_PANEL_ID } from './shared';
@@ -37,36 +38,57 @@ const sx: SystemStyleObject = {
   position: 'absolute',
   transform: 'translate(-50%, -50%)',
   zIndex: 1100,
-  w: '1.05rem',
-  h: '1.05rem',
-  minW: '1.05rem',
-  minH: '1.05rem',
-  borderRadius: 'full',
-  borderWidth: '2px',
-  borderStyle: 'solid',
-  borderColor: 'invokeYellow.500',
-  bg: 'invokeYellow.500',
-  boxShadow: '0 0 0 1px var(--invoke-colors-base-900)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  w: 'calc(0.95rem + 2px)',
+  h: '1.14rem',
+  minW: 'calc(0.95rem + 2px)',
+  minH: '1.14rem',
+  borderRadius: '0',
+  borderWidth: '0',
+  borderTopWidth: '1px',
+  borderTopStyle: 'solid',
+  borderTopColor: 'var(--dv-active-sash-color, var(--invoke-colors-base-700))',
+  bg: 'var(--invoke-colors-base-850)',
+  color: 'base.300',
+  boxShadow: 'none',
   pointerEvents: 'auto',
   userSelect: 'none',
   touchAction: 'none',
   _hover: {
-    bg: 'invokeYellow.300',
-    borderColor: 'invokeYellow.300',
+    bg: 'var(--invoke-colors-base-850)',
+    color: 'base.200',
   },
   _active: {
-    bg: 'invokeYellow.300',
+    bg: 'var(--invoke-colors-base-850)',
+    color: 'base.200',
   },
   _focusVisible: {
     outline: '2px solid',
-    outlineColor: 'invokeYellow.300',
+    outlineColor: 'base.400',
     outlineOffset: '2px',
+  },
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: '0',
+    left: '0',
+    right: '0',
+    height: '50%',
+    borderLeftWidth: '1px',
+    borderLeftStyle: 'solid',
+    borderLeftColor: 'var(--dv-active-sash-color, var(--invoke-colors-base-700))',
+    borderRightWidth: '1px',
+    borderRightStyle: 'solid',
+    borderRightColor: 'var(--dv-active-sash-color, var(--invoke-colors-base-700))',
+    pointerEvents: 'none',
   },
   '&::after': {
     content: '""',
     position: 'absolute',
     inset: '-8px',
-    borderRadius: 'full',
+    borderRadius: '0',
   },
 };
 
@@ -407,7 +429,9 @@ export const VerticalLayoutJointResizeHandle = memo((props: Props) => {
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
       onLostPointerCapture={handleLostPointerCapture}
-    />
+    >
+      <Icon as={PiDotsSixVertical} boxSize="0.7rem" />
+    </Box>
   );
 });
 
