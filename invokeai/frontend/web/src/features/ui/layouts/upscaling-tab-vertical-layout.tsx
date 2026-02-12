@@ -42,6 +42,7 @@ import {
 } from './shared';
 import { UpscalingLaunchpadPanel } from './UpscalingLaunchpadPanel';
 import { UpscalingTabLeftPanel } from './UpscalingTabLeftPanel';
+import { VerticalLayoutJointResizeHandle } from './VerticalLayoutJointResizeHandle';
 
 // Panel IDs for vertical layout
 const GALLERY_CONTAINER_PANEL_ID = 'gallery-container-panel';
@@ -275,13 +276,16 @@ export const UpscalingTabVerticalLayout = memo(() => {
 
   return (
     <AutoLayoutProvider tab="upscaling">
-      <GridviewReact
-        className="dockview-theme-invoke"
-        components={rootPanelComponents}
-        onReady={onReady}
-        orientation={Orientation.VERTICAL}
-        proportionalLayout={true}
-      />
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        <GridviewReact
+          className="dockview-theme-invoke"
+          components={rootPanelComponents}
+          onReady={onReady}
+          orientation={Orientation.VERTICAL}
+          proportionalLayout={true}
+        />
+        <VerticalLayoutJointResizeHandle tab="upscaling" rightContainerPanelId={GALLERY_CONTAINER_PANEL_ID} />
+      </div>
     </AutoLayoutProvider>
   );
 });

@@ -43,6 +43,7 @@ import {
   VIEWER_PANEL_ID,
   WORKSPACE_PANEL_ID,
 } from './shared';
+import { VerticalLayoutJointResizeHandle } from './VerticalLayoutJointResizeHandle';
 import { WorkflowsLaunchpadPanel } from './WorkflowsLaunchpadPanel';
 
 // Panel IDs for vertical layout
@@ -294,13 +295,16 @@ export const WorkflowsTabVerticalLayout = memo(() => {
 
   return (
     <AutoLayoutProvider tab="workflows">
-      <GridviewReact
-        className="dockview-theme-invoke"
-        components={rootPanelComponents}
-        onReady={onReady}
-        orientation={Orientation.VERTICAL}
-        proportionalLayout={true}
-      />
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        <GridviewReact
+          className="dockview-theme-invoke"
+          components={rootPanelComponents}
+          onReady={onReady}
+          orientation={Orientation.VERTICAL}
+          proportionalLayout={true}
+        />
+        <VerticalLayoutJointResizeHandle tab="workflows" rightContainerPanelId={GALLERY_CONTAINER_PANEL_ID} />
+      </div>
     </AutoLayoutProvider>
   );
 });

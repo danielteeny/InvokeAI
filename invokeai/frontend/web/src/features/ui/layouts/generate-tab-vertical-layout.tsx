@@ -43,6 +43,7 @@ import {
   TOP_PANEL_MIN_HEIGHT_PX,
   VIEWER_PANEL_ID,
 } from './shared';
+import { VerticalLayoutJointResizeHandle } from './VerticalLayoutJointResizeHandle';
 
 const tabComponents = {
   [DOCKVIEW_TAB_ID]: DockviewTab,
@@ -273,13 +274,16 @@ export const GenerateTabVerticalLayout = memo(() => {
 
   return (
     <AutoLayoutProvider tab="generate">
-      <GridviewReact
-        className="dockview-theme-invoke"
-        components={rootPanelComponents}
-        onReady={onReady}
-        orientation={Orientation.VERTICAL}
-        proportionalLayout={true}
-      />
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        <GridviewReact
+          className="dockview-theme-invoke"
+          components={rootPanelComponents}
+          onReady={onReady}
+          orientation={Orientation.VERTICAL}
+          proportionalLayout={true}
+        />
+        <VerticalLayoutJointResizeHandle tab="generate" rightContainerPanelId={GALLERY_CONTAINER_PANEL_ID} />
+      </div>
     </AutoLayoutProvider>
   );
 });

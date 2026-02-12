@@ -48,6 +48,7 @@ import {
   VIEWER_PANEL_ID,
   WORKSPACE_PANEL_ID,
 } from './shared';
+import { VerticalLayoutJointResizeHandle } from './VerticalLayoutJointResizeHandle';
 
 const tabComponents = {
   [DOCKVIEW_TAB_LAUNCHPAD_ID]: DockviewTabLaunchpad,
@@ -310,13 +311,16 @@ export const CanvasTabVerticalLayout = memo(() => {
 
   return (
     <AutoLayoutProvider tab="canvas">
-      <GridviewReact
-        className="dockview-theme-invoke"
-        components={rootPanelComponents}
-        onReady={onReady}
-        orientation={Orientation.VERTICAL}
-        proportionalLayout={true}
-      />
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        <GridviewReact
+          className="dockview-theme-invoke"
+          components={rootPanelComponents}
+          onReady={onReady}
+          orientation={Orientation.VERTICAL}
+          proportionalLayout={true}
+        />
+        <VerticalLayoutJointResizeHandle tab="canvas" rightContainerPanelId={RIGHT_CONTAINER_PANEL_ID} />
+      </div>
     </AutoLayoutProvider>
   );
 });

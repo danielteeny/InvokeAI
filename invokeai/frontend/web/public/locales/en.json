@@ -2931,6 +2931,9 @@
             "imageViewer": "Viewer",
             "canvas": "Canvas"
         },
+        "layout": {
+            "jointResizeHandleAriaLabel": "Drag to resize top and side panels"
+        },
         "launchpad": {
             "workflowsTitle": "Go deep with Workflows.",
             "upscalingTitle": "Upscale and add detail.",
