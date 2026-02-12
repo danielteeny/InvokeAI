@@ -218,9 +218,36 @@ export const VerticalLayoutJointResizeHandle = memo((props: Props) => {
         return;
       }
 
-      const panels = resolvePanels(tab, rightContainerPanelId);
+      let panels = resolvePanels(tab, rightContainerPanelId);
       if (!panels) {
         return;
+      }
+
+      // If settings are full-height (main/viewer collapsed), grabbing the joint handle
+      // should restore the viewer and continue directly into the same drag gesture.
+      if (panels.main.height === 0) {
+        navigationApi.toggleMainPanelForFullSettings();
+
+        const restoredPanels = resolvePanels(tab, rightContainerPanelId);
+        if (!restoredPanels) {
+          scheduleAnchorUpdate();
+          return;
+        }
+
+        const totalRootHeight = restoredPanels.top.height + restoredPanels.main.height;
+        const minTopHeight = restoredPanels.top.minimumHeight ?? 0;
+        const minMainHeight = restoredPanels.main.minimumHeight ?? 0;
+        const targetTopHeight = Math.max(minTopHeight, totalRootHeight - minMainHeight);
+        const targetMainHeight = Math.max(0, totalRootHeight - targetTopHeight);
+
+        restoredPanels.top.api.setSize({ height: targetTopHeight });
+        restoredPanels.main.api.setSize({ height: targetMainHeight });
+
+        panels = restoredPanels;
+        setAnchor({
+          x: panels.settings.width,
+          y: targetTopHeight,
+        });
       }
 
       const calculationInput: JointResizeCalculationInput = {
@@ -264,7 +291,7 @@ export const VerticalLayoutJointResizeHandle = memo((props: Props) => {
         // no-op
       }
     },
-    [rightContainerPanelId, tab]
+    [rightContainerPanelId, scheduleAnchorUpdate, tab]
   );
 
   const endDrag = useCallback(
