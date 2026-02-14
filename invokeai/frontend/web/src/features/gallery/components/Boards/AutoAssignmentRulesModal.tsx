@@ -35,21 +35,21 @@ import {
   useGetRulesForBoardQuery,
   useUpdateBoardAssignmentRuleMutation,
 } from 'services/api/endpoints/boardAssignment';
-import { useBoardName } from 'services/api/hooks/useBoardName';
 import { useLoRAModels, useMainModels } from 'services/api/hooks/modelsByType';
+import { useBoardName } from 'services/api/hooks/useBoardName';
 import type { BoardDTO } from 'services/api/types';
 
-import { RuleValueHelperPicker } from './RuleValueHelperPicker';
 import {
   buildLoRANameHelperOptions,
   buildModelBaseHelperOptions,
   buildModelNameHelperOptions,
   getConditionValueForSave,
+  type HelperOptionsByConditionType,
   isConditionValid,
   NUMERIC_CONDITION_TYPES,
-  type HelperOptionsByConditionType,
   type RuleConditionDraft,
 } from './autoAssignmentRuleUtils';
+import { RuleValueHelperPicker } from './RuleValueHelperPicker';
 
 export const $boardForAutoAssignment = atom<BoardDTO | null>(null);
 
