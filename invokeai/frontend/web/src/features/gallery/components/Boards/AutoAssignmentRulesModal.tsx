@@ -36,11 +36,24 @@ import {
   useUpdateBoardAssignmentRuleMutation,
 } from 'services/api/endpoints/boardAssignment';
 import { useBoardName } from 'services/api/hooks/useBoardName';
+import { useLoRAModels, useMainModels } from 'services/api/hooks/modelsByType';
 import type { BoardDTO } from 'services/api/types';
+
+import { RuleValueHelperPicker } from './RuleValueHelperPicker';
+import {
+  buildLoRANameHelperOptions,
+  buildModelBaseHelperOptions,
+  buildModelNameHelperOptions,
+  getConditionValueForSave,
+  isConditionValid,
+  NUMERIC_CONDITION_TYPES,
+  type HelperOptionsByConditionType,
+  type RuleConditionDraft,
+} from './autoAssignmentRuleUtils';
 
 export const $boardForAutoAssignment = atom<BoardDTO | null>(null);
 
-const CONDITION_TYPES = [
+const CONDITION_TYPES: Array<{ value: RuleCondition['condition_type']; label: string }> = [
   { value: 'model_name', label: 'Model Name' },
   { value: 'model_base', label: 'Model Base' },
   { value: 'lora_present', label: 'LoRA Present' },
@@ -51,9 +64,9 @@ const CONDITION_TYPES = [
   { value: 'width_max', label: 'Max Width' },
   { value: 'height_min', label: 'Min Height' },
   { value: 'height_max', label: 'Max Height' },
-] as const;
+];
 
-const OPERATORS = [
+const OPERATORS: Array<{ value: RuleCondition['operator']; label: string }> = [
   { value: 'equals', label: 'Equals' },
   { value: 'contains', label: 'Contains' },
   { value: 'starts_with', label: 'Starts With' },
@@ -61,10 +74,17 @@ const OPERATORS = [
   { value: 'greater_than', label: 'Greater Than' },
   { value: 'less_than', label: 'Less Than' },
   { value: 'any', label: 'Any' },
-] as const;
+];
 
-// Valid operators for each condition type
-const VALID_OPERATORS_BY_TYPE: Record<string, string[]> = {
+const CONDITION_TYPE_LABEL_BY_VALUE = Object.fromEntries(
+  CONDITION_TYPES.map((conditionType) => [conditionType.value, conditionType.label])
+) as Record<RuleCondition['condition_type'], string>;
+
+const OPERATOR_LABEL_BY_VALUE = Object.fromEntries(
+  OPERATORS.map((operator) => [operator.value, operator.label])
+) as Record<RuleCondition['operator'], string>;
+
+const VALID_OPERATORS_BY_TYPE: Record<RuleCondition['condition_type'], RuleCondition['operator'][]> = {
   model_name: ['equals', 'contains', 'starts_with', 'ends_with'],
   model_base: ['equals'],
   lora_present: ['any'],
@@ -77,8 +97,47 @@ const VALID_OPERATORS_BY_TYPE: Record<string, string[]> = {
   height_max: ['less_than'],
 };
 
-// Condition types that require numeric values
-const NUMERIC_CONDITION_TYPES = ['width_min', 'width_max', 'height_min', 'height_max'];
+type ConditionHelperSource = Extract<RuleCondition['condition_type'], 'lora_name' | 'model_name' | 'model_base'>;
+
+type ConditionHelperConfig = {
+  source: ConditionHelperSource;
+  noOptionsKey: string;
+  tooltipKey: string;
+};
+
+const HELPER_CONFIG_BY_CONDITION_TYPE: Partial<Record<RuleCondition['condition_type'], ConditionHelperConfig>> = {
+  model_name: {
+    source: 'model_name',
+    noOptionsKey: 'boards.valueHelperNoModelNames',
+    tooltipKey: 'boards.valueHelperModelNameTooltip',
+  },
+  model_base: {
+    source: 'model_base',
+    noOptionsKey: 'boards.valueHelperNoModelBases',
+    tooltipKey: 'boards.valueHelperModelBaseTooltip',
+  },
+  lora_name: {
+    source: 'lora_name',
+    noOptionsKey: 'boards.valueHelperNoLoraNames',
+    tooltipKey: 'boards.valueHelperLoraNameTooltip',
+  },
+};
+
+const formatConditionForRuleCard = (condition: RuleCondition): string => {
+  const conditionTypeLabel = CONDITION_TYPE_LABEL_BY_VALUE[condition.condition_type] ?? condition.condition_type;
+  const operatorLabel = OPERATOR_LABEL_BY_VALUE[condition.operator] ?? condition.operator;
+
+  if (condition.operator === 'any') {
+    return `${conditionTypeLabel} ${operatorLabel}`;
+  }
+
+  const value = String(condition.value ?? '').trim();
+  if (!value) {
+    return `${conditionTypeLabel} ${operatorLabel}`;
+  }
+
+  return `${conditionTypeLabel} ${operatorLabel} "${value}"`;
+};
 
 interface RuleCardProps {
   rule: BoardAssignmentRule;
@@ -129,7 +188,7 @@ const RuleCard = memo(({ rule, onToggle, onDelete, onEdit }: RuleCardProps) => {
         {rule.conditions.map((condition, idx) => (
           <Text key={idx}>
             {idx > 0 && (rule.match_all ? 'AND ' : 'OR ')}
-            {condition.condition_type} {condition.operator} {String(condition.value ?? '')}
+            {formatConditionForRuleCard(condition)}
           </Text>
         ))}
       </Box>
@@ -139,91 +198,172 @@ const RuleCard = memo(({ rule, onToggle, onDelete, onEdit }: RuleCardProps) => {
 RuleCard.displayName = 'RuleCard';
 
 interface ConditionEditorProps {
-  condition: Partial<RuleCondition>;
-  onChange: (condition: Partial<RuleCondition>) => void;
+  condition: RuleConditionDraft;
+  helperOptionsByConditionType: HelperOptionsByConditionType;
+  isHelperLoadingByConditionType: Partial<Record<RuleCondition['condition_type'], boolean>>;
+  onChange: (condition: RuleConditionDraft) => void;
   onRemove: () => void;
   showRemove: boolean;
 }
 
-const ConditionEditor = memo(({ condition, onChange, onRemove, showRemove }: ConditionEditorProps) => {
-  const { t } = useTranslation();
+const ConditionEditor = memo(
+  ({
+    condition,
+    helperOptionsByConditionType,
+    isHelperLoadingByConditionType,
+    onChange,
+    onRemove,
+    showRemove,
+  }: ConditionEditorProps) => {
+    const { t } = useTranslation();
 
-  // Filter operators based on selected condition type
-  const validOperators = useMemo(() => {
-    if (!condition.condition_type) {
-      return OPERATORS;
-    }
-    const validOps = VALID_OPERATORS_BY_TYPE[condition.condition_type] || [];
-    return OPERATORS.filter((op) => validOps.includes(op.value));
-  }, [condition.condition_type]);
+    const validOperators = useMemo(() => {
+      if (!condition.condition_type) {
+        return OPERATORS;
+      }
+      const validOps = VALID_OPERATORS_BY_TYPE[condition.condition_type] || [];
+      return OPERATORS.filter((operator) => validOps.includes(operator.value));
+    }, [condition.condition_type]);
 
-  const isNumericType = NUMERIC_CONDITION_TYPES.includes(condition.condition_type || '');
+    const isNumericType = condition.condition_type ? NUMERIC_CONDITION_TYPES.has(condition.condition_type) : false;
+    const isAnyOperator = condition.operator === 'any';
 
-  const handleTypeChange = useCallback(
-    (e: ChangeEvent<HTMLSelectElement>) => {
-      const newType = e.target.value as RuleCondition['condition_type'];
-      const validOps = VALID_OPERATORS_BY_TYPE[newType] || [];
-      // Reset operator if current operator is invalid for new type
-      const newOperator = validOps.includes(condition.operator || '')
-        ? condition.operator
-        : (validOps[0] as RuleCondition['operator']) || '';
-      onChange({ ...condition, condition_type: newType, operator: newOperator });
-    },
-    [condition, onChange]
-  );
+    const helperConfig = useMemo(() => {
+      if (!condition.condition_type) {
+        return undefined;
+      }
+      return HELPER_CONFIG_BY_CONDITION_TYPE[condition.condition_type];
+    }, [condition.condition_type]);
 
-  const handleOperatorChange = useCallback(
-    (e: ChangeEvent<HTMLSelectElement>) => {
-      onChange({ ...condition, operator: e.target.value as RuleCondition['operator'] });
-    },
-    [condition, onChange]
-  );
+    const helperOptions = useMemo(() => {
+      if (!helperConfig) {
+        return [];
+      }
+      return helperOptionsByConditionType[helperConfig.source] ?? [];
+    }, [helperConfig, helperOptionsByConditionType]);
 
-  const handleValueChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      onChange({ ...condition, value: e.target.value });
-    },
-    [condition, onChange]
-  );
+    const helperIsLoading = helperConfig ? (isHelperLoadingByConditionType[helperConfig.source] ?? false) : false;
 
-  return (
-    <Flex gap={2} alignItems="center">
-      <Select value={condition.condition_type || ''} onChange={handleTypeChange} size="sm" flex={1}>
-        <option value="">{t('boards.selectConditionType')}</option>
-        {CONDITION_TYPES.map((ct) => (
-          <option key={ct.value} value={ct.value}>
-            {ct.label}
-          </option>
-        ))}
-      </Select>
-      <Select value={condition.operator || ''} onChange={handleOperatorChange} size="sm" flex={1}>
-        <option value="">{t('boards.selectOperator')}</option>
-        {validOperators.map((op) => (
-          <option key={op.value} value={op.value}>
-            {op.label}
-          </option>
-        ))}
-      </Select>
-      <Input
-        type={isNumericType ? 'number' : 'text'}
-        value={String(condition.value ?? '')}
-        onChange={handleValueChange}
-        placeholder={t('boards.conditionValue')}
-        size="sm"
-        flex={1}
-      />
-      {showRemove && (
-        <IconButton
-          aria-label={t('common.delete')}
-          icon={<PiTrashSimpleBold />}
-          size="sm"
-          variant="ghost"
-          onClick={onRemove}
-        />
-      )}
-    </Flex>
-  );
-});
+    const handleTypeChange = useCallback(
+      (e: ChangeEvent<HTMLSelectElement>) => {
+        const selectedType = e.target.value as RuleCondition['condition_type'] | '';
+        if (!selectedType) {
+          onChange({ ...condition, condition_type: undefined, operator: undefined, value: undefined });
+          return;
+        }
+
+        const validOps = VALID_OPERATORS_BY_TYPE[selectedType] || [];
+        const nextOperator = condition.operator && validOps.includes(condition.operator) ? condition.operator : validOps[0];
+
+        onChange({
+          ...condition,
+          condition_type: selectedType,
+          operator: nextOperator,
+          value: nextOperator === 'any' ? undefined : condition.value,
+        });
+      },
+      [condition, onChange]
+    );
+
+    const handleOperatorChange = useCallback(
+      (e: ChangeEvent<HTMLSelectElement>) => {
+        const selectedOperator = e.target.value as RuleCondition['operator'] | '';
+        const nextOperator = selectedOperator || undefined;
+        onChange({
+          ...condition,
+          operator: nextOperator,
+          value: nextOperator === 'any' ? undefined : condition.value,
+        });
+      },
+      [condition, onChange]
+    );
+
+    const handleValueChange = useCallback(
+      (e: ChangeEvent<HTMLInputElement>) => {
+        onChange({ ...condition, value: e.target.value });
+      },
+      [condition, onChange]
+    );
+
+    const handleHelperSelect = useCallback(
+      (selectedValue: string) => {
+        if (!condition.condition_type) {
+          return;
+        }
+
+        const validOps = VALID_OPERATORS_BY_TYPE[condition.condition_type] || [];
+        const nextOperator = condition.operator && validOps.includes(condition.operator) ? condition.operator : validOps[0];
+
+        onChange({
+          ...condition,
+          operator: nextOperator,
+          value: selectedValue,
+        });
+      },
+      [condition, onChange]
+    );
+
+    return (
+      <Flex gap={2} alignItems="center">
+        <Select value={condition.condition_type || ''} onChange={handleTypeChange} size="sm" flex={1}>
+          <option value="">{t('boards.selectConditionType')}</option>
+          {CONDITION_TYPES.map((conditionType) => (
+            <option key={conditionType.value} value={conditionType.value}>
+              {conditionType.label}
+            </option>
+          ))}
+        </Select>
+
+        <Select value={condition.operator || ''} onChange={handleOperatorChange} size="sm" flex={1}>
+          <option value="">{t('boards.selectOperator')}</option>
+          {validOperators.map((operator) => (
+            <option key={operator.value} value={operator.value}>
+              {operator.label}
+            </option>
+          ))}
+        </Select>
+
+        {isAnyOperator ? (
+          <Flex flex={1} alignItems="center" minH={8}>
+            <Text fontSize="sm" color="base.500">
+              {t('boards.conditionValueNotRequiredForAny')}
+            </Text>
+          </Flex>
+        ) : (
+          <Flex gap={1} alignItems="center" flex={1}>
+            <Input
+              type={isNumericType ? 'number' : 'text'}
+              value={String(condition.value ?? '')}
+              onChange={handleValueChange}
+              placeholder={t('boards.conditionValue')}
+              size="sm"
+              flex={1}
+            />
+            {helperConfig && (
+              <RuleValueHelperPicker
+                options={helperOptions}
+                onSelect={handleHelperSelect}
+                noOptionsMessage={t(helperConfig.noOptionsKey)}
+                tooltip={t(helperConfig.tooltipKey)}
+                isLoading={helperIsLoading}
+              />
+            )}
+          </Flex>
+        )}
+
+        {showRemove && (
+          <IconButton
+            aria-label={t('common.delete')}
+            icon={<PiTrashSimpleBold />}
+            size="sm"
+            variant="ghost"
+            onClick={onRemove}
+          />
+        )}
+      </Flex>
+    );
+  }
+);
 ConditionEditor.displayName = 'ConditionEditor';
 
 const AutoAssignmentRulesModal = () => {
@@ -231,6 +371,27 @@ const AutoAssignmentRulesModal = () => {
   const { t } = useTranslation();
   const board = useStore($boardForAutoAssignment);
   const boardName = useBoardName(board?.board_id ?? '');
+
+  const [mainModels, { isLoading: isLoadingMainModels }] = useMainModels();
+  const [loraModels, { isLoading: isLoadingLoRAModels }] = useLoRAModels();
+
+  const helperOptionsByConditionType = useMemo<HelperOptionsByConditionType>(
+    () => ({
+      model_name: buildModelNameHelperOptions(mainModels),
+      model_base: buildModelBaseHelperOptions(mainModels),
+      lora_name: buildLoRANameHelperOptions(loraModels),
+    }),
+    [mainModels, loraModels]
+  );
+
+  const isHelperLoadingByConditionType = useMemo<Partial<Record<RuleCondition['condition_type'], boolean>>>(
+    () => ({
+      model_name: isLoadingMainModels,
+      model_base: isLoadingMainModels,
+      lora_name: isLoadingLoRAModels,
+    }),
+    [isLoadingMainModels, isLoadingLoRAModels]
+  );
 
   const { data: rules = [], isLoading } = useGetRulesForBoardQuery(board?.board_id ?? '', {
     skip: !board,
@@ -242,15 +403,35 @@ const AutoAssignmentRulesModal = () => {
 
   const [isAddingRule, setIsAddingRule] = useState(false);
   const [newRuleName, setNewRuleName] = useState('');
-  const [newConditions, setNewConditions] = useState<Partial<RuleCondition>[]>([{ case_sensitive: false }]);
+  const [newConditions, setNewConditions] = useState<RuleConditionDraft[]>([{ case_sensitive: false }]);
   const [matchAll, setMatchAll] = useState(true);
 
-  // Edit mode state
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [editRuleName, setEditRuleName] = useState('');
-  const [editConditions, setEditConditions] = useState<Partial<RuleCondition>[]>([]);
+  const [editConditions, setEditConditions] = useState<RuleConditionDraft[]>([]);
   const [editMatchAll, setEditMatchAll] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  const buildConditionsForSave = useCallback((conditions: RuleConditionDraft[]): RuleCondition[] => {
+    return conditions.filter(isConditionValid).map((condition) => {
+      const normalizedValue = getConditionValueForSave(condition);
+
+      if (normalizedValue === undefined) {
+        return {
+          condition_type: condition.condition_type,
+          operator: condition.operator,
+          case_sensitive: condition.case_sensitive ?? false,
+        };
+      }
+
+      return {
+        condition_type: condition.condition_type,
+        operator: condition.operator,
+        value: normalizedValue,
+        case_sensitive: condition.case_sensitive ?? false,
+      };
+    });
+  }, []);
 
   const handleClose = useCallback(() => {
     $boardForAutoAssignment.set(null);
@@ -258,7 +439,6 @@ const AutoAssignmentRulesModal = () => {
     setNewRuleName('');
     setNewConditions([{ case_sensitive: false }]);
     setMatchAll(true);
-    // Reset edit state
     setEditingRuleId(null);
     setEditRuleName('');
     setEditConditions([]);
@@ -305,9 +485,8 @@ const AutoAssignmentRulesModal = () => {
   const handleEditRule = useCallback((rule: BoardAssignmentRule) => {
     setEditingRuleId(rule.rule_id);
     setEditRuleName(rule.rule_name);
-    setEditConditions(rule.conditions.map((c) => ({ ...c })));
+    setEditConditions(rule.conditions.map((condition) => ({ ...condition })));
     setEditMatchAll(rule.match_all);
-    // Close add mode if open
     setIsAddingRule(false);
   }, []);
 
@@ -323,14 +502,7 @@ const AutoAssignmentRulesModal = () => {
       return;
     }
 
-    const validConditions: RuleCondition[] = editConditions
-      .filter((c) => Boolean(c.condition_type) && Boolean(c.operator) && c.value !== undefined && c.value !== '')
-      .map((c) => ({
-        condition_type: c.condition_type!,
-        operator: c.operator!,
-        value: c.value,
-        case_sensitive: c.case_sensitive ?? false,
-      }));
+    const validConditions = buildConditionsForSave(editConditions);
 
     if (validConditions.length === 0) {
       toast({
@@ -368,10 +540,10 @@ const AutoAssignmentRulesModal = () => {
     } finally {
       setIsUpdating(false);
     }
-  }, [editingRuleId, editRuleName, editConditions, editMatchAll, updateRule, t]);
+  }, [buildConditionsForSave, editConditions, editMatchAll, editRuleName, editingRuleId, t, updateRule]);
 
-  const handleEditConditionChange = useCallback((index: number, condition: Partial<RuleCondition>) => {
-    setEditConditions((prev) => prev.map((c, i) => (i === index ? condition : c)));
+  const handleEditConditionChange = useCallback((index: number, condition: RuleConditionDraft) => {
+    setEditConditions((prev) => prev.map((current, currentIndex) => (currentIndex === index ? condition : current)));
   }, []);
 
   const handleEditAddCondition = useCallback(() => {
@@ -379,7 +551,7 @@ const AutoAssignmentRulesModal = () => {
   }, []);
 
   const handleEditRemoveCondition = useCallback((index: number) => {
-    setEditConditions((prev) => prev.filter((_, i) => i !== index));
+    setEditConditions((prev) => prev.filter((_, currentIndex) => currentIndex !== index));
   }, []);
 
   const handleEditRuleNameChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
@@ -395,11 +567,11 @@ const AutoAssignmentRulesModal = () => {
   }, []);
 
   const handleRemoveCondition = useCallback((index: number) => {
-    setNewConditions((prev) => prev.filter((_, i) => i !== index));
+    setNewConditions((prev) => prev.filter((_, currentIndex) => currentIndex !== index));
   }, []);
 
-  const handleConditionChange = useCallback((index: number, condition: Partial<RuleCondition>) => {
-    setNewConditions((prev) => prev.map((c, i) => (i === index ? condition : c)));
+  const handleConditionChange = useCallback((index: number, condition: RuleConditionDraft) => {
+    setNewConditions((prev) => prev.map((current, currentIndex) => (currentIndex === index ? condition : current)));
   }, []);
 
   const handleCreateRule = useCallback(async () => {
@@ -407,14 +579,7 @@ const AutoAssignmentRulesModal = () => {
       return;
     }
 
-    const validConditions: RuleCondition[] = newConditions
-      .filter((c) => Boolean(c.condition_type) && Boolean(c.operator) && c.value !== undefined && c.value !== '')
-      .map((c) => ({
-        condition_type: c.condition_type!,
-        operator: c.operator!,
-        value: c.value,
-        case_sensitive: c.case_sensitive ?? false,
-      }));
+    const validConditions = buildConditionsForSave(newConditions);
 
     if (validConditions.length === 0) {
       toast({
@@ -448,7 +613,7 @@ const AutoAssignmentRulesModal = () => {
         description: error instanceof Error ? error.message : undefined,
       });
     }
-  }, [board, newRuleName, newConditions, matchAll, createRule, t]);
+  }, [board, buildConditionsForSave, createRule, matchAll, newConditions, newRuleName, t]);
 
   const handleCancelAdd = useCallback(() => {
     setIsAddingRule(false);
@@ -521,6 +686,8 @@ const AutoAssignmentRulesModal = () => {
                               key={index}
                               index={index}
                               condition={condition}
+                              helperOptionsByConditionType={helperOptionsByConditionType}
+                              isHelperLoadingByConditionType={isHelperLoadingByConditionType}
                               onConditionChange={handleEditConditionChange}
                               onRemoveCondition={handleEditRemoveCondition}
                               showRemove={editConditions.length > 1}
@@ -598,6 +765,8 @@ const AutoAssignmentRulesModal = () => {
                         key={index}
                         index={index}
                         condition={condition}
+                        helperOptionsByConditionType={helperOptionsByConditionType}
+                        isHelperLoadingByConditionType={isHelperLoadingByConditionType}
                         onConditionChange={handleConditionChange}
                         onRemoveCondition={handleRemoveCondition}
                         showRemove={newConditions.length > 1}
@@ -637,17 +806,27 @@ const AutoAssignmentRulesModal = () => {
 
 interface ConditionEditorWrapperProps {
   index: number;
-  condition: Partial<RuleCondition>;
-  onConditionChange: (index: number, condition: Partial<RuleCondition>) => void;
+  condition: RuleConditionDraft;
+  helperOptionsByConditionType: HelperOptionsByConditionType;
+  isHelperLoadingByConditionType: Partial<Record<RuleCondition['condition_type'], boolean>>;
+  onConditionChange: (index: number, condition: RuleConditionDraft) => void;
   onRemoveCondition: (index: number) => void;
   showRemove: boolean;
 }
 
 const ConditionEditorWrapper = memo(
-  ({ index, condition, onConditionChange, onRemoveCondition, showRemove }: ConditionEditorWrapperProps) => {
+  ({
+    index,
+    condition,
+    helperOptionsByConditionType,
+    isHelperLoadingByConditionType,
+    onConditionChange,
+    onRemoveCondition,
+    showRemove,
+  }: ConditionEditorWrapperProps) => {
     const handleChange = useCallback(
-      (c: Partial<RuleCondition>) => {
-        onConditionChange(index, c);
+      (nextCondition: RuleConditionDraft) => {
+        onConditionChange(index, nextCondition);
       },
       [index, onConditionChange]
     );
@@ -657,18 +836,32 @@ const ConditionEditorWrapper = memo(
     }, [index, onRemoveCondition]);
 
     return (
-      <ConditionEditor condition={condition} onChange={handleChange} onRemove={handleRemove} showRemove={showRemove} />
+      <ConditionEditor
+        condition={condition}
+        helperOptionsByConditionType={helperOptionsByConditionType}
+        isHelperLoadingByConditionType={isHelperLoadingByConditionType}
+        onChange={handleChange}
+        onRemove={handleRemove}
+        showRemove={showRemove}
+      />
     );
   }
 );
 ConditionEditorWrapper.displayName = 'ConditionEditorWrapper';
 
-// Separate wrapper for edit mode to avoid hook issues
 const EditConditionEditorWrapper = memo(
-  ({ index, condition, onConditionChange, onRemoveCondition, showRemove }: ConditionEditorWrapperProps) => {
+  ({
+    index,
+    condition,
+    helperOptionsByConditionType,
+    isHelperLoadingByConditionType,
+    onConditionChange,
+    onRemoveCondition,
+    showRemove,
+  }: ConditionEditorWrapperProps) => {
     const handleChange = useCallback(
-      (c: Partial<RuleCondition>) => {
-        onConditionChange(index, c);
+      (nextCondition: RuleConditionDraft) => {
+        onConditionChange(index, nextCondition);
       },
       [index, onConditionChange]
     );
@@ -678,7 +871,14 @@ const EditConditionEditorWrapper = memo(
     }, [index, onRemoveCondition]);
 
     return (
-      <ConditionEditor condition={condition} onChange={handleChange} onRemove={handleRemove} showRemove={showRemove} />
+      <ConditionEditor
+        condition={condition}
+        helperOptionsByConditionType={helperOptionsByConditionType}
+        isHelperLoadingByConditionType={isHelperLoadingByConditionType}
+        onChange={handleChange}
+        onRemove={handleRemove}
+        showRemove={showRemove}
+      />
     );
   }
 );
