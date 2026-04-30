@@ -27,6 +27,7 @@ export type Feature =
   | 'controlNetResizeMode'
   | 'controlNetWeight'
   | 'dynamicPrompts'
+  | 'dynamicPromptsCombinatorial'
   | 'dynamicPromptsMaxPrompts'
   | 'dynamicPromptsSeedBehaviour'
   | 'globalReferenceImage'
