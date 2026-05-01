@@ -97,7 +97,8 @@ const useSaveCanvas = ({ region, saveToGallery, toastOk, toastError, onSave, wit
 
     let boardId: BoardId | undefined = undefined;
     if (saveToGallery) {
-      boardId = selectAutoAddBoardId(state);
+      const autoAddBoardId = selectAutoAddBoardId(state);
+      boardId = autoAddBoardId === 'none' ? undefined : autoAddBoardId;
     }
 
     const result = await withResultAsync(() => {
