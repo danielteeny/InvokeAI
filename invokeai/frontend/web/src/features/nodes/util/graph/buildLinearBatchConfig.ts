@@ -20,6 +20,17 @@ const getExtendedPrompts = (arg: {
   return prompts;
 };
 
+const shufflePrompts = (prompts: string[]): string[] => {
+  const shuffled = [...prompts];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const promptAtI = shuffled[i]!;
+    shuffled[i] = shuffled[j]!;
+    shuffled[j] = promptAtI;
+  }
+  return shuffled;
+};
+
 export const prepareLinearUIBatch = (arg: {
   state: RootState;
   g: Graph;
@@ -32,7 +43,8 @@ export const prepareLinearUIBatch = (arg: {
 }): EnqueueBatchArg => {
   const { state, g, base, prepend, positivePromptNode, seedNode, origin, destination } = arg;
   const { iterations, shouldRandomizeSeed, seed } = state.params;
-  const { prompts, seedBehaviour } = state.dynamicPrompts;
+  const { combinatorial, prompts, seedBehaviour } = state.dynamicPrompts;
+  const promptItems = combinatorial ? prompts : shufflePrompts(prompts);
 
   const data: Batch['data'] = [];
   const firstBatchDatumList: components['schemas']['BatchDatum'][] = [];
@@ -41,7 +53,7 @@ export const prepareLinearUIBatch = (arg: {
   // add seeds first to ensure the output order groups the prompts
   if (seedNode && seedBehaviour === 'PER_PROMPT') {
     const seeds = generateSeeds({
-      count: prompts.length * iterations,
+      count: promptItems.length * iterations,
       start: shouldRandomizeSeed ? undefined : seed,
     });
 
@@ -65,7 +77,7 @@ export const prepareLinearUIBatch = (arg: {
     data.push(secondBatchDatumList);
   }
 
-  const extendedPrompts = getExtendedPrompts({ seedBehaviour, iterations, prompts, base });
+  const extendedPrompts = getExtendedPrompts({ seedBehaviour, iterations, prompts: promptItems, base });
 
   // zipped batch of prompts
   firstBatchDatumList.push({

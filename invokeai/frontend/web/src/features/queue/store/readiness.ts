@@ -148,6 +148,7 @@ const debouncedUpdateReasons = debounce(async (arg: UpdateReasonsArg) => {
       isConnected,
       upscale,
       params,
+      dynamicPrompts,
       loras,
     });
     $reasonsWhyCannotEnqueue.set(reasons);
@@ -237,6 +238,9 @@ const getReasonsWhyCannotEnqueueGenerateTab = (arg: {
 
   if (dynamicPrompts.prompts.length === 0 && getShouldProcessPrompt(positivePrompt)) {
     reasons.push({ content: i18n.t('parameters.invoke.noPrompts') });
+  }
+  if (dynamicPrompts.isLoading && getShouldProcessPrompt(positivePrompt)) {
+    reasons.push({ content: i18n.t('dynamicPrompts.loading') });
   }
 
   if (!model) {
@@ -386,9 +390,11 @@ const getReasonsWhyCannotEnqueueUpscaleTab = (arg: {
   isConnected: boolean;
   upscale: UpscaleState;
   params: ParamsState;
+  dynamicPrompts: DynamicPromptsState;
   loras: LoRA[];
 }) => {
-  const { isConnected, upscale, params, loras } = arg;
+  const { isConnected, upscale, params, dynamicPrompts, loras } = arg;
+  const { positivePrompt } = params;
   const reasons: Reason[] = [];
 
   if (!isConnected) {
@@ -397,6 +403,9 @@ const getReasonsWhyCannotEnqueueUpscaleTab = (arg: {
 
   if (!upscale.upscaleInitialImage) {
     reasons.push({ content: i18n.t('upscaling.missingUpscaleInitialImage') });
+  }
+  if (dynamicPrompts.isLoading && getShouldProcessPrompt(positivePrompt)) {
+    reasons.push({ content: i18n.t('dynamicPrompts.loading') });
   }
 
   const model = params.model;
@@ -482,6 +491,9 @@ const getReasonsWhyCannotEnqueueCanvasTab = (arg: {
 
   if (dynamicPrompts.prompts.length === 0 && getShouldProcessPrompt(positivePrompt)) {
     reasons.push({ content: i18n.t('parameters.invoke.noPrompts') });
+  }
+  if (dynamicPrompts.isLoading && getShouldProcessPrompt(positivePrompt)) {
+    reasons.push({ content: i18n.t('dynamicPrompts.loading') });
   }
 
   if (!model) {

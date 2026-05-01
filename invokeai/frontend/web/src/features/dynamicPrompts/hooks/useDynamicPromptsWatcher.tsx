@@ -9,6 +9,7 @@ import {
   promptsChanged,
   selectDynamicPromptsCombinatorial,
   selectDynamicPromptsMaxPrompts,
+  selectDynamicPromptsShuffleKey,
 } from 'features/dynamicPrompts/store/dynamicPromptsSlice';
 import { getShouldProcessPrompt } from 'features/dynamicPrompts/util/getShouldProcessPrompt';
 import { selectPresetModifiedPrompts } from 'features/nodes/util/graph/graphBuilderUtils';
@@ -26,6 +27,7 @@ export const useDynamicPromptsWatcher = () => {
   const presetModifiedPrompts = useAppSelector(selectPresetModifiedPrompts);
   const maxPrompts = useAppSelector(selectDynamicPromptsMaxPrompts);
   const combinatorial = useAppSelector(selectDynamicPromptsCombinatorial);
+  const shuffleKey = useAppSelector(selectDynamicPromptsShuffleKey);
 
   const debouncedUpdateDynamicPrompts = useMemo(
     () =>
@@ -90,5 +92,5 @@ export const useDynamicPromptsWatcher = () => {
     }
 
     debouncedUpdateDynamicPrompts(presetModifiedPrompts.positive, maxPrompts, combinatorial);
-  }, [combinatorial, debouncedUpdateDynamicPrompts, dispatch, getState, maxPrompts, presetModifiedPrompts]);
+  }, [combinatorial, debouncedUpdateDynamicPrompts, dispatch, getState, maxPrompts, presetModifiedPrompts, shuffleKey]);
 };

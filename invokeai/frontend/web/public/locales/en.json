@@ -1446,6 +1446,7 @@
         "showDynamicPrompts": "Show Dynamic Prompts",
         "dynamicPrompts": "Dynamic Prompts",
         "combinatorial": "Combinatorial",
+        "shuffle": "Shuffle Dynamic Prompts",
         "maxPrompts": "Max Prompts",
         "promptsPreview": "Prompts Preview",
         "seedBehaviour": {

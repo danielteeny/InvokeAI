@@ -3,6 +3,7 @@ import { logger } from 'app/logging/logger';
 import { useAppSelector } from 'app/store/storeHooks';
 import { withResultAsync } from 'common/util/result';
 import { selectSaveAllImagesToGallery } from 'features/controlLayers/store/canvasSettingsSlice';
+import { selectDynamicPromptsIsLoading } from 'features/dynamicPrompts/store/dynamicPromptsSlice';
 import { useEnqueueWorkflows } from 'features/queue/hooks/useEnqueueWorkflows';
 import { $isReadyToEnqueue } from 'features/queue/store/readiness';
 import { navigationApi } from 'features/ui/layouts/navigation-api';
@@ -21,6 +22,7 @@ const log = logger('generation');
 export const useInvoke = () => {
   const tabName = useAppSelector(selectActiveTab);
   const isReady = useStore($isReadyToEnqueue);
+  const isLoadingDynamicPrompts = useAppSelector(selectDynamicPromptsIsLoading);
   const enqueueWorkflows = useEnqueueWorkflows();
   const enqueueCanvas = useEnqueueCanvas();
   const enqueueGenerate = useEnqueueGenerate();
@@ -34,7 +36,7 @@ export const useInvoke = () => {
 
   const enqueue = useCallback(
     async (prepend: boolean) => {
-      if (!isReady) {
+      if (!isReady || isLoadingDynamicPrompts) {
         return;
       }
 
@@ -57,7 +59,7 @@ export const useInvoke = () => {
         log.error({ error: serializeError(result.error) }, 'Failed to enqueue batch');
       }
     },
-    [enqueueCanvas, enqueueGenerate, enqueueUpscaling, enqueueWorkflows, isReady, tabName]
+    [enqueueCanvas, enqueueGenerate, enqueueUpscaling, enqueueWorkflows, isLoadingDynamicPrompts, isReady, tabName]
   );
 
   const enqueueBack = useCallback(() => {
@@ -90,5 +92,5 @@ export const useInvoke = () => {
     }
   }, [enqueue, saveAllImagesToGallery, tabName]);
 
-  return { enqueueBack, enqueueFront, isLoading, isDisabled: !isReady, enqueue };
+  return { enqueueBack, enqueueFront, isLoading, isDisabled: !isReady || isLoadingDynamicPrompts, enqueue };
 };

@@ -20,6 +20,7 @@ const zDynamicPromptsState = z.object({
   isError: z.boolean(),
   isLoading: z.boolean(),
   seedBehaviour: zSeedBehaviour,
+  shuffleKey: z.number().int().min(0),
 });
 export type DynamicPromptsState = z.infer<typeof zDynamicPromptsState>;
 
@@ -32,6 +33,7 @@ const getInitialState = (): DynamicPromptsState => ({
   isError: false,
   isLoading: false,
   seedBehaviour: 'PER_ITERATION',
+  shuffleKey: 0,
 });
 
 const slice = createSlice({
@@ -43,6 +45,9 @@ const slice = createSlice({
     },
     combinatorialChanged: (state, action: PayloadAction<boolean>) => {
       state.combinatorial = action.payload;
+    },
+    dynamicPromptsShuffled: (state) => {
+      state.shuffleKey += 1;
     },
     promptsChanged: (state, action: PayloadAction<string[]>) => {
       state.prompts = action.payload;
@@ -66,6 +71,7 @@ const slice = createSlice({
 export const {
   maxPromptsChanged,
   combinatorialChanged,
+  dynamicPromptsShuffled,
   promptsChanged,
   parsingErrorChanged,
   isErrorChanged,
@@ -83,9 +89,12 @@ export const dynamicPromptsSliceConfig: SliceConfig<typeof slice> = {
       if (!('_version' in state)) {
         state._version = 1;
       }
+      if (!('shuffleKey' in state)) {
+        state.shuffleKey = 0;
+      }
       return zDynamicPromptsState.parse(state);
     },
-    persistDenylist: ['prompts', 'parsingError', 'isError', 'isLoading'],
+    persistDenylist: ['prompts', 'parsingError', 'isError', 'isLoading', 'shuffleKey'],
   },
 };
 
@@ -107,4 +116,7 @@ export const selectDynamicPromptsIsError = createDynamicPromptsSelector((dynamic
 export const selectDynamicPromptsIsLoading = createDynamicPromptsSelector((dynamicPrompts) => dynamicPrompts.isLoading);
 export const selectDynamicPromptsSeedBehaviour = createDynamicPromptsSelector(
   (dynamicPrompts) => dynamicPrompts.seedBehaviour
+);
+export const selectDynamicPromptsShuffleKey = createDynamicPromptsSelector(
+  (dynamicPrompts) => dynamicPrompts.shuffleKey
 );
